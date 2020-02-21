@@ -1,0 +1,25 @@
+name: fever
+dependencies:
+  - python=3.6
+  - pytorch=1.4.*
+  - cudatoolkit=10.1
+  - numpy
+  - scipy
+  - pandas
+  - scikit-learn
+  - requests
+  - ipython
+  - pylint
+  - pyflakes
+  - pycodestyle
+  - jedi
+  - click=7.0.*
+  - pip
+  - pip:
+    - allennlp==0.9.*
+    - overrides
+    - plotnine
+    - unidecode
+channels:
+  - anaconda
+  - pytorch
