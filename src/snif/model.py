@@ -15,17 +15,13 @@ class ClaimOnlyModel(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  dropout: float,
-                 pool: Text = "cls",
+                 pool: Text,
                  label_namespace: str = "claim_labels"):
         super().__init__(vocab)
         self._pool = pool
         self._bert = PretrainedBertEmbedder('bert-base-uncased', requires_grad=True)
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self._classifier = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(self._bert.get_output_dim(), self._bert.get_output_dim()),
-            nn.GELU(),
-            nn.LayerNorm(self._bert.get_output_dim()),
             nn.Dropout(dropout),
             nn.Linear(self._bert.get_output_dim(), self._num_labels),
         )

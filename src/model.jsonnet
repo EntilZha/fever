@@ -7,6 +7,7 @@ function(lr=0.0001) {
   model: {
     type: 'claim_only',
     dropout: 0.25,
+    pool: 'mean',
   },
   iterator: {
     type: 'bucket',
