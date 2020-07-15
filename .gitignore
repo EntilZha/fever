@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+serene/protos/*.py
+data
+.vscode/*

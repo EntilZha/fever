@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "serene"
+version = "0.1.0"
+description = ""
+authors = ["Pedro Rodriguez <me@pedro.ai>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+allennlp = "^1.0.0"
+tqdm = "^4.47.0"
+typer = "^0.3.0"
+torch = "^1.5.1"
+numpy = "^1.19.0"
+comet-ml = "^3.1.12"
+overrides = "^3.0.0"
+pedroai = "^0.1.2"
+sqlalchemy = "^1.3.18"
+
+[tool.poetry.dev-dependencies]
+black = "^19.10b0"
+pyflakes = "^2.2.0"
+pylint = "^2.5.3"
+ipython = "^7.16.1"
+pycodestyle = "^2.6.0"
+jedi = "^0.17.1"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
