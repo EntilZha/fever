@@ -35,4 +35,5 @@ function(lr=1e-5) {
         type: 'comet_epoch_callback', project_name: 'serene'
     }],
   },
+  distributed: {cuda_devices: [0, 1, 2],},
 }
