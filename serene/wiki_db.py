@@ -17,13 +17,7 @@
 from typing import Text, List, Tuple
 from contextlib import contextmanager
 
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    create_engine,
-    LargeBinary
-)
+from sqlalchemy import Column, Integer, String, create_engine, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.scoping import ScopedSession
@@ -44,7 +38,7 @@ class WikiPage(Base):
 class WikiDatabase:
     """A wrapper around sqlite wikipedia database that returns proto pages."""
 
-    def __init__(self, db_path):
+    def __init__(self, db_path: str = "sqlite:///data/wiki_proto.sqlite3"):
         """Constructor.
         Args:
         db_path: Path to db to read or write
@@ -82,8 +76,9 @@ class WikiDatabase:
         Returns:
         A list of wikipedia url strings in db
         """
-        wiki_rows: List[Tuple[Text]] = self.session.query(WikiPage.wikipedia_url).all()
-        return [row[0] for row in wiki_rows]
+        with self.session_scope as session:
+            wiki_rows: List[Tuple[Text]] = session.query(WikiPage.wikipedia_url).all()
+            return [row[0] for row in wiki_rows]
 
     def get_page(self, wikipedia_url):
         """Get the proto for the wikipedia page by url.

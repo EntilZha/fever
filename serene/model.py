@@ -7,7 +7,9 @@ from torch import nn
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.training.metrics import CategoricalAccuracy
-from allennlp.modules.token_embedders.pretrained_transformer_embedder import PretrainedTransformerEmbedder
+from allennlp.modules.token_embedders.pretrained_transformer_embedder import (
+    PretrainedTransformerEmbedder,
+)
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.nn import util
 
@@ -37,9 +39,9 @@ class ClaimOnlyModel(Model):
     ):
         super().__init__(vocab)
         self._pool = pool
-        self._claim_embedder = BasicTextFieldEmbedder({
-            "claim_tokens": PretrainedTransformerEmbedder(transformer)
-        })
+        self._claim_embedder = BasicTextFieldEmbedder(
+            {"claim_tokens": PretrainedTransformerEmbedder(transformer)}
+        )
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self._classifier = nn.Sequential(
             nn.Dropout(dropout),
@@ -62,11 +64,90 @@ class ClaimOnlyModel(Model):
     def forward(
         self,
         claim_tokens: Dict[str, torch.LongTensor],
+        evidence_tokens=None,
         metadata=None,
         label: torch.IntTensor = None,
     ):
         claim_embeddings = self._claim_embedder(claim_tokens)[:, 0, :]
         logits = self._classifier(claim_embeddings)
+        probs = torch.nn.functional.softmax(logits, dim=-1)
+        output_dict = {
+            "logits": logits,
+            "probs": probs,
+            "preds": torch.argmax(logits, 1),
+        }
+
+        if label is not None:
+            loss = self._loss(logits, label.long().view(-1))
+            output_dict["loss"] = loss
+            self._accuracy(logits, label)
+
+        return output_dict
+
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        metrics = {"accuracy": self._accuracy.get_metric(reset)}
+        return metrics
+
+
+@Model.register("fever_oracle")
+class FeverOracleModel(Model):
+    def __init__(
+        self,
+        vocab: Vocabulary,
+        dropout: float,
+        transformer: str,
+        pool: Text,
+        interaction_dim: int = 1000,
+        label_namespace: str = "claim_labels",
+    ):
+        super().__init__(vocab)
+        self._pool = pool
+        self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
+        self._claim_embedder = BasicTextFieldEmbedder(
+            {"claim_tokens": PretrainedTransformerEmbedder(transformer)}
+        )
+        self._evidence_embedder = BasicTextFieldEmbedder(
+            {"evidence_tokens": PretrainedTransformerEmbedder(transformer)}
+        )
+        self._dropout = nn.Dropout(dropout)
+        self._interaction = nn.Bilinear(
+            self._claim_embedder.get_output_dim(),
+            self._evidence_embedder.get_output_dim(),
+            interaction_dim,
+        )
+        self._classifier = nn.Sequential(
+            nn.GELU(),
+            nn.LayerNorm(interaction_dim),
+            nn.Dropout(dropout),
+            nn.Linear(interaction_dim, self._num_labels),
+        )
+        self._accuracy = CategoricalAccuracy()
+        weights = {
+            "SUPPORTS": BASELINE_RATIO / SUPPORT_RATIO,
+            "REFUTES": BASELINE_RATIO / REFUTE_RATIO,
+            "NOT ENOUGH INFO": BASELINE_RATIO / NEI_RATIO,
+        }
+        weight_array = []
+        for idx in range(3):
+            class_name = self.vocab.get_token_from_index(idx, namespace=label_namespace)
+            weight_array.append(weights[class_name])
+            log.info(f"Class weight: {class_name}={weights[class_name]}")
+        weight_array = torch.from_numpy(np.array(weight_array)).float()
+        self._loss = torch.nn.CrossEntropyLoss(weight=weight_array)
+
+    def forward(
+        self,
+        claim_tokens: Dict[str, torch.LongTensor],
+        evidence_tokens: Dict[str, torch.LongTensor],
+        metadata=None,
+        label: torch.IntTensor = None,
+    ):
+        claim_embeddings = self._dropout(self._claim_embedder(claim_tokens)[:, 0, :])
+        evidence_embeddings = self._dropout(
+            self._evidence_embedder(evidence_tokens)[:, 0, :]
+        )
+        merged = self._interaction(claim_embeddings, evidence_embeddings)
+        logits = self._classifier(merged)
         probs = torch.nn.functional.softmax(logits, dim=-1)
         output_dict = {
             "logits": logits,

@@ -119,7 +119,7 @@ def parse_wiki_line_from_json(json_value) -> fever_pb2.WikipediaDump:
 
 
 def build_wiki_db():
-    db = WikiDatabase('sqlite:///data/wiki_proto.sqlite3')
+    db = WikiDatabase()
     try:
         db.drop()
     except:

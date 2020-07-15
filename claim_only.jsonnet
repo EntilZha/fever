@@ -1,15 +1,16 @@
 local transformer = "roberta-base";
 
-function(lr=1e-4) {
+function(lr=1e-5) {
   dataset_reader: {
     type: 'fever',
-    transformer: transformer
+    transformer: transformer,
+    include_evidence: false
   },
   train_data_path: 'data/train.jsonl',
   validation_data_path: 'data/shared_task_dev.jsonl',
   model: {
     type: 'claim_only',
-    dropout: 0.5,
+    dropout: 0.1,
     pool: 'cls',
     transformer: transformer
   },
@@ -22,8 +23,9 @@ function(lr=1e-4) {
   },
   trainer: {
     optimizer: {
-      type: 'adam',
+      type: 'huggingface_adamw',
       lr: lr,
+      correct_bias: true
     },
     validation_metric: '+accuracy',
     num_epochs: 50,
