@@ -20,4 +20,5 @@ export SLURM_LOG_FILE="/fs/clip-quiz/entilzha/logs/${SLURM_JOB_ID}.log"
 export MODEL_CONFIG_FILE="$2"
 pwd
 # $1 is the serialization dir, $2 is the model config
+srun cp -n data/wiki_proto.sqlite3 /dev/shm/
 srun python serene/main.py train $1 $2

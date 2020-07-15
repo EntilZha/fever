@@ -15,6 +15,7 @@
 # Lint as: python3
 """Sqlite wikipedia db that stores protos by fever formatted wikipedia url."""
 from typing import Text, List, Tuple
+import os
 from contextlib import contextmanager
 
 from sqlalchemy import Column, Integer, String, create_engine, LargeBinary
@@ -34,17 +35,24 @@ class WikiPage(Base):
     wikipedia_url = Column(String, index=True)
     proto = Column(LargeBinary)
 
+SQLITE_PREFIX = 'sqlite:///'
 
 class WikiDatabase:
     """A wrapper around sqlite wikipedia database that returns proto pages."""
 
-    def __init__(self, db_path: str = "sqlite:///data/wiki_proto.sqlite3"):
+    def __init__(self, fs_path: str = "data/wiki_proto.sqlite3", ramfs_path: str = "/dev/shm/wiki_proto.sqlite3"):
         """Constructor.
         Args:
         db_path: Path to db to read or write
         """
-        self._db_path: Text = db_path
-        self._engine = create_engine(db_path)
+        self._fs_path: str = fs_path
+        self._ramfs_path: str = ramfs_path
+        if os.path.exists(ramfs_path):
+            self._db_path = self._ramfs_path
+        else:
+            self._db_path = self._fs_path
+
+        self._engine = create_engine(SQLITE_PREFIX + self._db_path)
         Base.metadata.bind = self._engine
 
     def create(self):
