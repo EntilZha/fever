@@ -1,6 +1,6 @@
 local transformer = "roberta-base";
 
-function(lr=0.0001) {
+function(lr=1e-4) {
   dataset_reader: {
     type: 'fever',
     transformer: transformer
