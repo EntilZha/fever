@@ -8,6 +8,8 @@ from allennlp.models.archival import load_archive
 from serene import model
 from serene import dataset
 from serene import wiki
+from serene import callbacks
+# Init the logger
 from serene.util import get_logger
 
 
