@@ -31,6 +31,9 @@ function(lr=1e-5) {
     num_epochs: 50,
     patience: 1,
     cuda_device: 0,
+    epoch_callbacks: [{
+        type: 'comet_epoch_callback', project_name: 'serene'
+    }],
   },
   distributed: {cuda_devices: [0, 1, 2],},
 }

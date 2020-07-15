@@ -1,6 +1,6 @@
 import typer
+# comet_ml needs to be imported before anything else
 import comet_ml
-import tqdm
 from allennlp import commands
 from allennlp.models.archival import load_archive
 
