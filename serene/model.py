@@ -6,7 +6,7 @@ from torch import nn
 
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.training.metrics import CategoricalAccuracy
+from allennlp.training.metrics import BooleanAccuracy, CategoricalAccuracy
 from allennlp.modules.token_embedders.pretrained_transformer_embedder import (
     PretrainedTransformerEmbedder,
 )
@@ -14,6 +14,7 @@ from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.nn import util
 
 from serene.util import get_logger
+from serene.metrics import Recall
 
 
 log = get_logger(__name__)
@@ -156,4 +157,73 @@ class FeverOracleModel(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {"accuracy": self._accuracy.get_metric(reset)}
+        return metrics
+
+
+class FeverEvidenceRanker(Model):
+    def __init__(
+        self,
+        vocab: Vocabulary,
+        dropout: float,
+        transformer: str,
+        label_namespace: str = "claim_labels",
+    ):
+        super().__init__(vocab)
+        self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
+        self._claim_embedder = BasicTextFieldEmbedder(
+            {"claim_tokens": PretrainedTransformerEmbedder(transformer)}
+        )
+        self._evidence_embedder = BasicTextFieldEmbedder(
+            {"evidence_tokens": PretrainedTransformerEmbedder(transformer)}
+        )
+        self._dropout = nn.Dropout(dropout)
+        self._accuracy = BooleanAccuracy()
+        self._recall = Recall()
+        self._loss = torch.nn.BCEWithLogitsLoss()
+
+    def forward(
+        self,
+        claim_tokens: Dict[str, torch.LongTensor],
+        evidence_tokens: Dict[str, torch.LongTensor],
+        metadata=None,
+        label: torch.IntTensor = None,
+    ):
+        emb_dim = self._claim_embedder.get_output_dim()
+        claim_embeddings = self._dropout(
+            self._claim_embedder(claim_tokens)[:, 0, :]
+        ).view(-1, emb_dim)
+        evidence_embeddings = self._dropout(
+            self._evidence_embedder(evidence_tokens)[:, 0, :]
+        ).view(-1, emb_dim)
+
+        # Compute in batch negatives scoring
+        # a=b=batch_size
+        # repeated i is significant
+        # (batch_size, batch_size)
+        batch_size = claim_embeddings.shape[0]
+        logits = torch.einsum("ai,bi->ab", [claim_embeddings, evidence_embeddings])
+        # (batch_size, batch_size)
+        probs = torch.sigmoid(logits)
+        preds = (probs > 0.5).long()
+        # Create a diagonal matrix of ones
+        labels = torch.eye(batch_size, batch_size).float().to(logits.device)
+        # Create labels, which are by construction on the diagonal (paired claim/evidence)
+        output_dict = {"logits": logits, "probs": probs, "preds": preds}
+
+        if label is not None:
+            loss = self._loss(logits, labels)
+            output_dict["loss"] = loss
+            metric_logits = logits.view(-1, 1).long()
+            metric_labels = labels.view(-1, 1).long()
+            metric_preds = preds.view(-1, 1).long()
+            self._accuracy(metric_logits, metric_labels)
+            self._recall(metric_preds, metric_labels)
+
+        return output_dict
+
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        metrics = {
+            "accuracy": self._accuracy.get_metric(reset),
+            "recall": self._recall.get_metric(reset),
+        }
         return metrics
