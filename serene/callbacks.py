@@ -17,5 +17,5 @@ class CometEpochCallback(EpochCallback):
             if config_file is not None:
                 self._experiment.log_asset(config_file)
         else:
-            for key, val in metrics:
+            for key, val in metrics.items():
                 self._experiment.log_metric(key, val, epoch=epoch)

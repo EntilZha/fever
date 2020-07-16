@@ -9,6 +9,7 @@ from serene import model
 from serene import dataset
 from serene import wiki
 from serene import callbacks
+from serene import dpr
 # Init the logger
 from serene.util import get_logger
 
@@ -40,6 +41,11 @@ def hyper(serialization_dir: str, model_config: str):
 @app.command()
 def wiki_to_proto():
     wiki.build_wiki_db()
+
+
+@app.command()
+def fever_to_dpr(fever_path: str, out_path: str):
+    dpr.convert_examples(fever_path, out_path)
 
 
 if __name__ == "__main__":

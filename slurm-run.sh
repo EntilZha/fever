@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 #SBATCH --job-name=serene
+#SBATCH --time=1-00:00:00
 #SBATCH --gres=gpu:3
 #SBATCH --qos=gpu-medium
 #SBATCH --chdir=/fs/clip-quiz/entilzha/code/fever

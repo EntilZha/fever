@@ -97,7 +97,7 @@ class FeverOracleModel(Model):
         dropout: float,
         transformer: str,
         pool: Text,
-        interaction_dim: int = 1000,
+        classifier_dim: int = 200,
         label_namespace: str = "claim_labels",
     ):
         super().__init__(vocab)
@@ -110,16 +110,11 @@ class FeverOracleModel(Model):
             {"evidence_tokens": PretrainedTransformerEmbedder(transformer)}
         )
         self._dropout = nn.Dropout(dropout)
-        self._interaction = nn.Bilinear(
-            self._claim_embedder.get_output_dim(),
-            self._evidence_embedder.get_output_dim(),
-            interaction_dim,
-        )
         self._classifier = nn.Sequential(
+            nn.Linear(self._claim_embedder.get_output_dim(), classifier_dim),
             nn.GELU(),
-            nn.LayerNorm(interaction_dim),
-            nn.Dropout(dropout),
-            nn.Linear(interaction_dim, self._num_labels),
+            nn.LayerNorm(classifier_dim),
+            nn.Linear(classifier_dim, self._num_labels),
         )
         self._accuracy = CategoricalAccuracy()
         weights = {
@@ -146,8 +141,7 @@ class FeverOracleModel(Model):
         evidence_embeddings = self._dropout(
             self._evidence_embedder(evidence_tokens)[:, 0, :]
         )
-        merged = self._interaction(claim_embeddings, evidence_embeddings)
-        logits = self._classifier(merged)
+        logits = self._classifier(claim_embeddings * evidence_embeddings)
         probs = torch.nn.functional.softmax(logits, dim=-1)
         output_dict = {
             "logits": logits,

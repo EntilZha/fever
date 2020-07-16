@@ -9,7 +9,7 @@ function(lr=1e-5) {
   train_data_path: 'data/train.jsonl',
   validation_data_path: 'data/shared_task_dev.jsonl',
   model: {
-    type: 'srene.model.FeverOracleModel',
+    type: 'serene.model.FeverOracleModel',
     dropout: 0.1,
     pool: 'cls',
     transformer: transformer
@@ -18,7 +18,7 @@ function(lr=1e-5) {
     batch_sampler: {
       type: 'bucket',
       sorting_keys: ['claim_tokens'],
-      batch_size: 16
+      batch_size: 8
     },
   },
   trainer: {
