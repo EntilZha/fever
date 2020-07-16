@@ -27,7 +27,6 @@ REFUTE_RATIO = N_TRAIN_REFUTE / N_TRAIN
 NEI_RATIO = N_TRAIN_NEI / N_TRAIN
 
 
-@Model.register("claim_only")
 class ClaimOnlyModel(Model):
     def __init__(
         self,
@@ -89,7 +88,6 @@ class ClaimOnlyModel(Model):
         return metrics
 
 
-@Model.register("fever_oracle")
 class FeverOracleModel(Model):
     def __init__(
         self,
