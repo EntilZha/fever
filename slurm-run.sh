@@ -2,12 +2,12 @@
 
 #SBATCH --job-name=serene
 #SBATCH --time=1-00:00:00
-#SBATCH --gres=gpu:3
+#SBATCH --gres=gpu:1
 #SBATCH --qos=gpu-medium
 #SBATCH --chdir=/fs/clip-quiz/entilzha/code/fever
 #SBATCH --output=/fs/www-users/entilzha/logs/%A.log
 #SBATCH --error=/fs/www-users/entilzha/logs/%A.log
-#SBATCH --cpus-per-task=6
+#SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=10g
 #SBATCH --partition=gpu
 #SBATCH --exclude=materialgpu00

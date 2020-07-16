@@ -2,13 +2,8 @@ import typer
 # comet_ml needs to be imported before anything else
 import comet_ml
 from allennlp import commands
-from allennlp.models.archival import load_archive
 
-# imports for allennlp register
-from serene import model
-from serene import dataset
 from serene import wiki
-from serene import callbacks
 from serene import dpr
 # Init the logger
 from serene.util import get_logger
