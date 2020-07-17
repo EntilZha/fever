@@ -26,7 +26,6 @@ function(lr=1e-5) {
       lr: lr,
       correct_bias: true
     },
-    validation_metric: '+accuracy',
     num_epochs: 50,
     patience: 1,
     cuda_device: 0,
