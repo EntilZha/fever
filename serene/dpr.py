@@ -4,7 +4,9 @@ Export data to DPR format
 import json
 from tqdm import tqdm
 from pedroai.io import read_jsonlines
+
 from serene.wiki_db import WikiDatabase
+from serene.protos.fever_pb2 import WikipediaDump
 from serene import constants as c
 
 
@@ -37,5 +39,20 @@ def convert_examples(fever_path: str, out_path: str):
         json.dump(dpr_examples, f)
 
 
-def convert_wiki():
-    pass
+def convert_wiki(tsv_path: str, map_path: str):
+    db = WikiDatabase()
+    id_to_page_sent = {}
+    with open(tsv_path, 'w') as f:
+        f.write('id\ttext\ttitle\n')
+        idx = 1
+        for page_proto in tqdm(db.get_all_pages()):
+            page_proto = WikipediaDump.FromString(page_proto)
+            title = page_proto.title.replace('\t', ' ')
+            for sent_id, sent_proto in page_proto.sentences.items():
+                text = sent_proto.text.replace('\t', ' ')
+                f.write(f'{idx}\t{text}\t{title}\n')
+                id_to_page_sent[str(idx)] = [title, sent_id]
+                idx += 1
+    
+    with open(map_path, 'w') as f:
+        json.dump(id_to_page_sent, f)

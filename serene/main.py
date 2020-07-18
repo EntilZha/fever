@@ -43,5 +43,10 @@ def fever_to_dpr(fever_path: str, out_path: str):
     dpr.convert_examples(fever_path, out_path)
 
 
+@app.command()
+def wiki_to_dpr(tsv_path: str, map_path: str):
+    dpr.convert_wiki(tsv_path, map_path)
+
+
 if __name__ == "__main__":
     app()

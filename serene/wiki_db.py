@@ -87,6 +87,11 @@ class WikiDatabase:
         with self.session_scope as session:
             wiki_rows: List[Tuple[Text]] = session.query(WikiPage.wikipedia_url).all()
             return [row[0] for row in wiki_rows]
+    
+    def get_all_pages(self):
+        with self.session_scope as session:
+            for row in session.query(WikiPage):
+                yield row.proto
 
     def get_page(self, wikipedia_url):
         """Get the proto for the wikipedia page by url.
