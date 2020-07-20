@@ -1017,6 +1017,18 @@ mccabe = ">=0.6,<0.7"
 toml = ">=0.7.1"
 
 [[package]]
+category = "dev"
+description = "A plugin for making Pylint aware of the fields of protobuf-generated classes"
+name = "pylint-protobuf"
+optional = false
+python-versions = "*"
+version = "0.13"
+
+[package.dependencies]
+astroid = "*"
+pylint = "*"
+
+[[package]]
 category = "main"
 description = "Python parsing module"
 name = "pyparsing"
@@ -1602,7 +1614,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "11d8b24580039066fb390f791892f45cd773938cad3785e0061cb987a2e5afde"
+content-hash = "275f5fe72748e64cc7b5d9cefc484ae521f81c6e3912be1deed7ae755a175e8e"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -2190,6 +2202,10 @@ pygments = [
 pylint = [
     {file = "pylint-2.5.3-py3-none-any.whl", hash = "sha256:d0ece7d223fe422088b0e8f13fa0a1e8eb745ebffcb8ed53d3e95394b6101a1c"},
     {file = "pylint-2.5.3.tar.gz", hash = "sha256:7dd78437f2d8d019717dbf287772d0b2dbdfd13fc016aa7faa08d67bccc46adc"},
+]
+pylint-protobuf = [
+    {file = "pylint-protobuf-0.13.tar.gz", hash = "sha256:331fbe3d7b06f6ff083d0bb2283e919a02e51f74e8fa692e3e0f1cf7b2878906"},
+    {file = "pylint_protobuf-0.13-py2.py3-none-any.whl", hash = "sha256:83d660d16f95cd909760d29452538d1fb6dd2ec6ba817bc6622aa300969b1db3"},
 ]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},

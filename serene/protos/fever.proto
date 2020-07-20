@@ -27,11 +27,10 @@ message FeverExample {
   // add `text' which represents the actual sentence contents.
   message Evidence {
     optional string wikipedia_url = 1;
-    optional string sentence_id = 2;
+    optional int32 sentence_id = 2;
 
     // Not populated in gold data.
     optional string sentence = 3;
-
     optional string page_title = 4;
   }
 
@@ -39,17 +38,8 @@ message FeverExample {
     repeated Evidence evidence = 1;
   }
 
-  enum Label {
-    UNKNOWN_LABEL = 0;
-    SUPPORTS = 1;
-    REFUTES = 2;
-    NOT_ENOUGH_INFO = 3;
-  }
-
-  optional string id = 1;
-  optional Label label = 2;
-
+  optional int32 id = 1;
+  optional string label = 2;
   optional string claim = 3;
-
   repeated EvidenceSet evidences = 4;
 }
