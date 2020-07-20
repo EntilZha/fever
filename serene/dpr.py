@@ -69,7 +69,7 @@ def convert_examples_to_protos(fever_path: str, out_path: str):
                         proto_ev.sentence_id = sentence_id
             proto_str = proto_example.SerializeToString()
             f.write(proto_str)
-            f.write(b"\n")
+            f.write(b"@@@")
 
 
 def convert_examples_for_inference(fever_path: str, out_path: str):
