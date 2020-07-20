@@ -3,9 +3,12 @@ Utilities for data such as
 * Exporting to DPR/Lucene formats
 * Scoring outputs of DPR/Lucene
 """
+from typing import Set, Dict, List, Tuple
 import json
+from dataclasses import dataclass
+
 from tqdm import tqdm
-from pedroai.io import read_jsonlines
+from pedroai.io import read_jsonlines, read_json
 import numpy as np
 
 from serene.wiki_db import WikiDatabase
@@ -123,6 +126,27 @@ def convert_wiki_to_kotlin_json(out_path: str):
             f.write("\n")
 
 
+@dataclass
+class GoldEvidence:
+    pages: Set[str]
+    sentences: Set[Tuple[str, int]]
+
+
+def create_gold_evidence(examples: List) -> Dict[str, GoldEvidence]:
+    id_to_gold = {}
+    for ex in examples:
+        if ex["label"] == c.NOT_ENOUGH_INFO:
+            continue
+        gold_evidence = set()
+        gold_pages = set()
+        for ev_set in ex["evidence"]:
+            for _, _, page, sent_id in ev_set:
+                gold_evidence.add((page, sent_id))
+                gold_pages.add(page)
+        id_to_gold[ex["id"]] = GoldEvidence(gold_pages, gold_evidence)
+    return id_to_gold
+
+
 def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
     examples = read_jsonlines(fever_path)
     with open(pred_path) as f:
@@ -135,16 +159,14 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
     n_total = 0
     n_correct = 0
     n_title_correct = 0
+    id_to_gold = create_gold_evidence(examples)
     for ex, pred in zip(tqdm(examples), evidence_preds):
         if ex["label"] == c.NOT_ENOUGH_INFO:
             continue
         n_total += 1
-        gold_evidence = set()
-        gold_pages = set()
-        for ev_set in ex["evidence"]:
-            for _, _, page, sent_id in ev_set:
-                gold_evidence.add((page, sent_id))
-                gold_pages.add(page)
+        gold = id_to_gold[ex["id"]]
+        gold_evidence = gold.sentences
+        gold_pages = gold.pages
 
         rank = 1
         correct = False
@@ -175,4 +197,37 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
 
 
 def score_lucene_evidence(fever_path: str, pred_path: str):
-    pass
+    examples = read_jsonlines(fever_path)
+    id_to_gold = create_gold_evidence(examples)
+    predictions = {int(k): v for k, v in read_json(pred_path)["documents"].items()}
+    scores = []
+    n_correct_pages = 0
+    n_correct = 0
+    for ex_id, gold in id_to_gold.items():
+        # Implicitly, NOT ENOUGH INFO are already filtered out
+        rank = 1
+        correct_sent = False
+        correct_page = False
+        for doc in predictions[ex_id]:
+            page = doc["wikipedia_url"]
+            sent_id = doc["sentence_id"]
+            if page in gold.pages:
+                correct_page = True
+            if (page, sent_id) in gold.sentences:
+                correct_sent = True
+                break
+            rank += 1
+
+        if correct_sent:
+            n_correct += 1
+            scores.append(1 / rank)
+
+        if correct_page:
+            n_correct_pages += 1
+
+    scores = np.array(scores)
+    n_total = len(id_to_gold)
+    recall_100 = n_correct / n_total
+    log.info(f"MRR: {scores.mean()}, % in MRR: {recall_100}")
+    log.info(f"N Correct: {n_correct} Total: {n_total}")
+    log.info(f"N Title Correct: {n_correct_pages}")

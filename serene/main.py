@@ -70,5 +70,10 @@ def convert_wiki_to_kotlin_json(out_path: str):
     data.convert_wiki_to_kotlin_json(out_path)
 
 
+@app.command()
+def score_lucene_evidence(fever_path: str, out_path: str):
+    data.score_lucene_evidence(fever_path, out_path)
+
+
 if __name__ == "__main__":
     app()
