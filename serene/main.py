@@ -65,5 +65,10 @@ def convert_examples_to_kotlin_json(fever_path: str, out_path: str):
     dpr.convert_examples_to_kotlin_json(fever_path, out_path)
 
 
+@app.command()
+def convert_wiki_to_kotlin_json(out_path: str):
+    dpr.convert_wiki_to_kotlin_json(out_path)
+
+
 if __name__ == "__main__":
     app()

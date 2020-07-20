@@ -103,6 +103,24 @@ def convert_wiki(tsv_path: str, map_path: str):
         json.dump(id_to_page_sent, f)
 
 
+def convert_wiki_to_kotlin_json(out_path: str):
+    db = WikiDatabase()
+    with open(out_path, "w") as f:
+        for page_proto in tqdm(db.get_all_pages()):
+            page_proto = WikipediaDump.FromString(page_proto)
+            out = {
+                "id": page_proto.id,
+                "title": page_proto.title,
+                "text": page_proto.text,
+            }
+            sentences = {}
+            for idx, sent in page_proto.sentences.items():
+                sentences[idx] = sent.text
+            out["sentences"] = sentences
+            f.write(json.dumps(out))
+            f.write("\n")
+
+
 def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
     examples = read_jsonlines(fever_path)
     with open(pred_path) as f:
