@@ -159,6 +159,7 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
     n_total = 0
     n_correct = 0
     n_title_correct = 0
+    n_recall_5 = 0
     id_to_gold = create_gold_evidence(examples)
     for ex, pred in zip(tqdm(examples), evidence_preds):
         if ex["label"] == c.NOT_ENOUGH_INFO:
@@ -188,13 +189,18 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
         if correct:
             mrr = 1 / rank
             scores.append(mrr)
+            if rank <= 5:
+                n_recall_5 += 1
 
         if page_correct:
             n_title_correct += 1
 
     scores = np.array(scores)
     recall_100 = n_correct / n_total
-    log.info(f"MRR: {scores.mean()}, % in MRR: {recall_100}")
+    log.info(
+        f"MRR Mean: {scores.mean():.3f}, MRR Median: {np.median(scores)} % in MRR: {recall_100:.3f}"
+    )
+    log.info(f"Recall@5: {n_recall_5 / n_total:.3f}")
     log.info(f"N Correct: {n_correct} Total: {n_total}")
     log.info(f"N Title Correct: {n_title_correct}")
 
@@ -206,6 +212,7 @@ def score_lucene_evidence(fever_path: str, pred_path: str):
     scores = []
     n_correct_pages = 0
     n_correct = 0
+    n_recall_5 = 0
     for ex_id, gold in id_to_gold.items():
         # Implicitly, NOT ENOUGH INFO are already filtered out
         rank = 1
@@ -226,6 +233,8 @@ def score_lucene_evidence(fever_path: str, pred_path: str):
         if correct_sent:
             n_correct += 1
             scores.append(1 / rank)
+            if rank <= 5:
+                n_recall_5 += 1
 
         if correct_page:
             n_correct_pages += 1
@@ -233,6 +242,9 @@ def score_lucene_evidence(fever_path: str, pred_path: str):
     scores = np.array(scores)
     n_total = len(id_to_gold)
     recall_100 = n_correct / n_total
-    log.info(f"MRR: {scores.mean()}, % in MRR: {recall_100}")
+    log.info(
+        f"MRR Mean: {scores.mean():.3f}, MRR Median: {np.median(scores)} % in MRR: {recall_100:.3f}"
+    )
+    log.info(f"Recall@5: {n_recall_5 / n_total:.3f}")
     log.info(f"N Correct: {n_correct} Total: {n_total}")
     log.info(f"N Title Correct: {n_correct_pages}")
