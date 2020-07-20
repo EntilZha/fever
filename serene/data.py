@@ -37,7 +37,7 @@ def convert_examples_for_training(fever_path: str, out_path: str):
         for ev_set in evidence_sets:
             for _, _, page, sent_id in ev_set:
                 if page is not None:
-                    page = page.replace("_", " ")
+                    # Do not change underscores to spaces
                     maybe_evidence = db.get_page_sentence(page, sent_id)
                     if maybe_evidence is not None:
                         flattened_evidence.append(
@@ -173,7 +173,10 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
         page_correct = False
         for evidence in pred["ctxs"]:
             ctx_id = evidence["id"]
-            predicted_evidence = tuple(id_to_page_sent[ctx_id])
+            page, sentence_id = id_to_page_sent[ctx_id]
+            # TODO: Undo spaces, can remove after full rerun
+            page = page.replace(" ", "_")
+            predicted_evidence = (page, sentence_id)
             if predicted_evidence[0] in gold_pages:
                 page_correct = True
             if predicted_evidence in gold_evidence:
@@ -210,6 +213,8 @@ def score_lucene_evidence(fever_path: str, pred_path: str):
         correct_page = False
         for doc in predictions[ex_id]:
             page = doc["wikipedia_url"]
+            # TODO: Can remove space replacement after full rerun
+            page = page.replace(" ", "_")
             sent_id = doc["sentence_id"]
             if page in gold.pages:
                 correct_page = True
