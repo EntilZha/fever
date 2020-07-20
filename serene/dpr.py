@@ -7,7 +7,7 @@ from pedroai.io import read_jsonlines
 import numpy as np
 
 from serene.wiki_db import WikiDatabase
-from serene.protos.fever_pb2 import WikipediaDump, FeverExample
+from serene.protos.fever_pb2 import WikipediaDump
 from serene.util import get_logger
 from serene import constants as c
 
@@ -52,24 +52,24 @@ def convert_examples_for_training(fever_path: str, out_path: str):
         json.dump(dpr_examples, f)
 
 
-def convert_examples_to_protos(fever_path: str, out_path: str):
+def convert_examples_to_kotlin_json(fever_path: str, out_path: str):
     examples = read_jsonlines(fever_path)
-    with open(out_path, "wb") as f:
+    with open(out_path, "w") as f:
         for ex in tqdm(examples):
-            proto_example = FeverExample()
-            proto_example.label = ex["label"]
-            proto_example.id = ex["id"]
-            proto_example.claim = ex["claim"]
-            for ev_set in ex["evidence"]:
-                proto_ev_set = proto_example.evidences.add()
-                for _, _, title, sentence_id in ev_set:
+            out = {"label": ex["label"], "id": ex["id"], "claim": ex["claim"]}
+            out_all_sets = []
+            for evidence_set in ex["evidence"]:
+                out_evidence_set = []
+                for _, _, title, sentence_id in evidence_set:
+                    evidence = {"wikipedia_url": None, "sentence_id": None}
                     if title is not None and sentence_id is not None:
-                        proto_ev = proto_ev_set.evidence.add()
-                        proto_ev.wikipedia_url = title
-                        proto_ev.sentence_id = sentence_id
-            proto_str = proto_example.SerializeToString()
-            f.write(proto_str)
-            f.write(b"@@@")
+                        evidence["wikipedia_url"] = title
+                        evidence["sentence_id"] = sentence_id
+                    out_evidence_set.append(evidence)
+                out_all_sets.append(out_evidence_set)
+            out["evidence"] = out_all_sets
+            f.write(json.dumps(out))
+            f.write("\n")
 
 
 def convert_examples_for_inference(fever_path: str, out_path: str):

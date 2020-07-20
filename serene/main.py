@@ -61,8 +61,8 @@ def score_dpr_preds(fever_path: str, id_map_path: str, dpr_path: str):
 
 
 @app.command()
-def convert_examples_to_protos(fever_path: str, out_path: str):
-    dpr.convert_examples_to_protos(fever_path, out_path)
+def convert_examples_to_kotlin_json(fever_path: str, out_path: str):
+    dpr.convert_examples_to_kotlin_json(fever_path, out_path)
 
 
 if __name__ == "__main__":
