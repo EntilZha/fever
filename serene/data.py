@@ -1,5 +1,7 @@
 """
-Export data to DPR format
+Utilities for data such as
+* Exporting to DPR/Lucene formats
+* Scoring outputs of DPR/Lucene
 """
 import json
 from tqdm import tqdm
@@ -130,9 +132,13 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
         id_to_page_sent = json.load(f)
 
     scores = []
+    n_total = 0
     n_correct = 0
     n_title_correct = 0
     for ex, pred in zip(tqdm(examples), evidence_preds):
+        if ex["label"] == c.NOT_ENOUGH_INFO:
+            continue
+        n_total += 1
         gold_evidence = set()
         gold_pages = set()
         for ev_set in ex["evidence"]:
@@ -162,8 +168,11 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
             n_title_correct += 1
 
     scores = np.array(scores)
-    recall_100 = n_correct / len(examples)
+    recall_100 = n_correct / n_total
     log.info(f"MRR: {scores.mean()}, % in MRR: {recall_100}")
-    log.info(f"N Correct: {n_correct} Total: {len(examples)}")
+    log.info(f"N Correct: {n_correct} Total: {n_total}")
     log.info(f"N Title Correct: {n_title_correct}")
 
+
+def score_lucene_evidence(fever_path: str, pred_path: str):
+    pass
