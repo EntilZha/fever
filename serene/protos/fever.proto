@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 package serene.fever;
+option java_package = "ai.pedro.fever";
 
 message WikipediaDump {
   message Entity {
@@ -43,3 +44,4 @@ message FeverExample {
   optional string claim = 3;
   repeated EvidenceSet evidences = 4;
 }
+
