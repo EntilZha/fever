@@ -35,12 +35,18 @@ class WikiPage(Base):
     wikipedia_url = Column(String, index=True)
     proto = Column(LargeBinary)
 
-SQLITE_PREFIX = 'sqlite:///'
+
+SQLITE_PREFIX = "sqlite:///"
+
 
 class WikiDatabase:
     """A wrapper around sqlite wikipedia database that returns proto pages."""
 
-    def __init__(self, fs_path: str = "data/wiki_proto.sqlite3", ramfs_path: str = "/dev/shm/wiki_proto.sqlite3"):
+    def __init__(
+        self,
+        fs_path: str = "data/wiki_proto.sqlite3",
+        ramfs_path: str = "/dev/shm/wiki_proto.sqlite3",
+    ):
         """Constructor.
         Args:
         db_path: Path to db to read or write
@@ -87,7 +93,7 @@ class WikiDatabase:
         with self.session_scope as session:
             wiki_rows: List[Tuple[Text]] = session.query(WikiPage.wikipedia_url).all()
             return [row[0] for row in wiki_rows]
-    
+
     def get_all_pages(self):
         with self.session_scope as session:
             for row in session.query(WikiPage):
@@ -100,6 +106,7 @@ class WikiDatabase:
         Returns:
         Returns proto of page if it exists, otherwise None
         """
+        wikipedia_url = wikipedia_url.replace("_", " ")
         with self.session_scope as session:
             page = (
                 session.query(WikiPage).filter_by(wikipedia_url=wikipedia_url).first()
@@ -117,6 +124,7 @@ class WikiDatabase:
         Returns:
         The text of the sentence if it exists, None otherwise
         """
+        wikipedia_url = wikipedia_url.replace("_", " ")
         with self.session_scope as session:
             page = (
                 session.query(WikiPage).filter_by(wikipedia_url=wikipedia_url).first()
