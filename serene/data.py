@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from tqdm import tqdm
 from pedroai.io import read_jsonlines, read_json
 import numpy as np
+from pydantic import BaseModel
 
 from serene.wiki_db import WikiDatabase
 from serene.protos.fever_pb2 import WikipediaDump
@@ -20,39 +21,98 @@ from serene import constants as c
 log = get_logger(__name__)
 
 
-def convert_examples_for_training(fever_path: str, out_path: str):
+class LuceneDocument(BaseModel):
+    wikipedia_url: str
+    sentence_id: int
+    text: str
+    score: float
+
+
+class LucenePredictions(BaseModel):
+    claim_id: int
+    documents: List[LuceneDocument]
+
+
+def parse_lucene_predictions(path: str) -> Dict[int, List[LuceneDocument]]:
+    preds = {}
+    with open(path) as f:
+        for line in f:
+            claim_pred: LucenePredictions = LucenePredictions.parse_raw(line)
+            preds[claim_pred.claim_id] = claim_pred.documents
+
+    return preds
+
+
+def convert_examples_for_dpr_training(
+    *, fever_path: str, out_path: str, hard_neg_path: str = None
+):
     """
     DPR trains based on a json formatted file where each entry contains
     and example along with all of its positive/negative contexts.
+    
+    Hard negatives will be in the lucene output format
     """
+    log.info(
+        f"fever_path: {fever_path} out_path: {out_path} hard_neg_path: {hard_neg_path}"
+    )
     examples = read_jsonlines(fever_path)
     db = WikiDatabase()
+    if hard_neg_path is None:
+        hard_negs = {}
+    else:
+        hard_negs = parse_lucene_predictions(hard_neg_path)
     dpr_examples = []
+    n_negatives = 0
     for ex in tqdm(examples):
         claim_label = ex["label"]
         if claim_label == c.NOT_ENOUGH_INFO:
             continue
         evidence_sets = ex["evidence"]
         flattened_evidence = []
+        # Note the gold, so they don't become negatives
+        gold_pairs = set()
         for ev_set in evidence_sets:
             for _, _, page, sent_id in ev_set:
-                if page is not None:
+                if page is not None and sent_id is not None:
                     # Do not change underscores to spaces
                     maybe_evidence = db.get_page_sentence(page, sent_id)
+                    gold_pairs.add((page, sent_id))
                     if maybe_evidence is not None:
                         flattened_evidence.append(
                             {"title": page, "text": maybe_evidence}
                         )
+        claim_id = ex["id"]
+
+        if hard_neg_path is None:
+            hard_negative_ctxs = []
+        else:
+            # Don't check errors here, I'd rather this crash
+            # and point out an unexpected absence of a negative
+            claim_negatives = hard_negs[claim_id]
+            for neg in claim_negatives:
+                if (neg.wikipedia_url, neg.sentence_id) not in gold_pairs:
+                    hard_negative_ctxs = [
+                        {
+                            "title": neg.wikipedia_url,
+                            "text": neg.text,
+                            "score": neg.score,
+                            "sentence_id": neg.sentence_id,
+                        }
+                    ]
+                    n_negatives += 1
+                    break
+
         dpr_examples.append(
             {
                 "question": ex["claim"],
                 "positive_ctxs": flattened_evidence,
                 "negative_ctxs": [],
-                "hard_negative_ctxs": [],
-                "claim_id": ex["id"],
+                "hard_negative_ctxs": hard_negative_ctxs,
+                "claim_id": claim_id,
                 "claim_label": claim_label,
             }
         )
+    log.info(f"N Total: {len(dpr_examples)} N Negatives: {n_negatives}")
     with open(out_path, "w") as f:
         json.dump(dpr_examples, f)
 
@@ -77,7 +137,7 @@ def convert_examples_to_kotlin_json(fever_path: str, out_path: str):
             f.write("\n")
 
 
-def convert_examples_for_inference(fever_path: str, out_path: str):
+def convert_examples_for_dpr_inference(*, fever_path: str, out_path: str):
     """
     DPR inferences takes a TSV file with the quesetion and answers.
     In this case, we only care about inputting a question.

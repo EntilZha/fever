@@ -37,41 +37,71 @@ def hyper(serialization_dir: str, model_config: str):
 
 @app.command()
 def wiki_to_proto():
+    """
+    Convert the fever wikipedia dump to a sqlite db
+    where each row is stored as a protobuf
+    """
     wiki.build_wiki_db()
 
 
 @app.command()
-def fever_to_dpr_train(fever_path: str, out_path: str):
-    data.convert_examples_for_training(fever_path, out_path)
+def fever_to_dpr_train(fever_path: str, out_path: str, hard_neg_path: str = None):
+    """
+    Convert Fever examples for DPR training. If hard_neg_path is defined,
+    then add these in as well.
+    """
+    data.convert_examples_for_dpr_training(
+        fever_path=fever_path, out_path=out_path, hard_neg_path=hard_neg_path
+    )
 
 
 @app.command()
 def fever_to_dpr_inference(fever_path: str, out_path: str):
-    data.convert_examples_for_inference(fever_path, out_path)
+    """
+    Convert Fever examples for DPR inference
+    """
+    data.convert_examples_for_dpr_inference(fever_path=fever_path, out_path=out_path)
 
 
 @app.command()
 def wiki_to_dpr(tsv_path: str, map_path: str):
+    """
+    Convert Wikipedia to the format for generating DPR dense embeddings
+    """
     data.convert_wiki(tsv_path, map_path)
 
 
 @app.command()
 def score_dpr_preds(fever_path: str, id_map_path: str, dpr_path: str):
+    """
+    Score the DPR Predictions
+    """
     data.score_evidence(fever_path, id_map_path, dpr_path)
 
 
 @app.command()
 def convert_examples_to_kotlin_json(fever_path: str, out_path: str):
+    """
+    Convert fever examples to the Json used in the Lucene code written in Kotlin
+    at github.com/entilzha/fever-lucene
+    """
     data.convert_examples_to_kotlin_json(fever_path, out_path)
 
 
 @app.command()
 def convert_wiki_to_kotlin_json(out_path: str):
+    """
+    Convert wikipedia to the Json used in the Lucene code written in Kotlin
+    at github.com/entilzha/fever-lucene
+    """
     data.convert_wiki_to_kotlin_json(out_path)
 
 
 @app.command()
 def score_lucene_evidence(fever_path: str, out_path: str):
+    """
+    Score lucene predictions
+    """
     data.score_lucene_evidence(fever_path, out_path)
 
 
