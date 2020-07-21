@@ -90,10 +90,11 @@ def convert_examples_for_dpr_training(
             # and point out an unexpected absence of a negative
             claim_negatives = hard_negs[claim_id]
             for neg in claim_negatives:
-                if (neg.wikipedia_url, neg.sentence_id) not in gold_pairs:
+                neg_wikipedia_url = neg.wikipedia_url.replace(" ", "_")
+                if (neg_wikipedia_url, neg.sentence_id) not in gold_pairs:
                     hard_negative_ctxs = [
                         {
-                            "title": neg.wikipedia_url,
+                            "title": neg_wikipedia_url,
                             "text": neg.text,
                             "score": neg.score,
                             "sentence_id": neg.sentence_id,
