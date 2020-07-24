@@ -45,13 +45,18 @@ def wiki_to_proto():
 
 
 @app.command()
-def fever_to_dpr_train(fever_path: str, out_path: str, hard_neg_path: str = None):
+def fever_to_dpr_train(
+    fever_path: str, out_path: str, hard_neg_path: str = None, nth_best_neg: int = 1
+):
     """
     Convert Fever examples for DPR training. If hard_neg_path is defined,
     then add these in as well.
     """
     data.convert_examples_for_dpr_training(
-        fever_path=fever_path, out_path=out_path, hard_neg_path=hard_neg_path
+        fever_path=fever_path,
+        out_path=out_path,
+        hard_neg_path=hard_neg_path,
+        nth_best_neg=nth_best_neg,
     )
 
 

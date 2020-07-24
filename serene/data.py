@@ -44,11 +44,14 @@ def parse_lucene_predictions(path: str) -> Dict[int, List[LuceneDocument]]:
 
 
 def convert_examples_for_dpr_training(
-    *, fever_path: str, out_path: str, hard_neg_path: str = None
+    *, fever_path: str, out_path: str, hard_neg_path: str = None, nth_best_neg: int = 1
 ):
     """
     DPR trains based on a json formatted file where each entry contains
     and example along with all of its positive/negative contexts.
+    
+    If nth_best_neg is defined, then skip that many negatives before taking one.
+    If none are found, then skip the hard negative
     
     Hard negatives will be in the lucene output format
     """
@@ -89,19 +92,24 @@ def convert_examples_for_dpr_training(
             # Don't check errors here, I'd rather this crash
             # and point out an unexpected absence of a negative
             claim_negatives = hard_negs[claim_id]
+            nth_neg = 1
             for neg in claim_negatives:
+                # TODO: After rerunning DB generation, remove this
                 neg_wikipedia_url = neg.wikipedia_url.replace(" ", "_")
                 if (neg_wikipedia_url, neg.sentence_id) not in gold_pairs:
-                    hard_negative_ctxs = [
-                        {
-                            "title": neg_wikipedia_url,
-                            "text": neg.text,
-                            "score": neg.score,
-                            "sentence_id": neg.sentence_id,
-                        }
-                    ]
-                    n_negatives += 1
-                    break
+                    if nth_best_neg == nth_neg:
+                        hard_negative_ctxs = [
+                            {
+                                "title": neg_wikipedia_url,
+                                "text": neg.text,
+                                "score": neg.score,
+                                "sentence_id": neg.sentence_id,
+                            }
+                        ]
+                        n_negatives += 1
+                        break
+                    else:
+                        nth_neg += 1
 
         dpr_examples.append(
             {
