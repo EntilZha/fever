@@ -1,6 +1,6 @@
 import json
+import argparse
 import typer
-import toml
 
 # comet_ml needs to be imported before anything else
 import comet_ml
@@ -8,6 +8,7 @@ from allennlp import commands
 
 from serene import wiki
 from serene import data
+from serene.constants import config
 
 # Init the logger
 from serene.util import get_logger
@@ -17,8 +18,6 @@ log = get_logger(__name__)
 
 
 app = typer.Typer()
-with open("serene.toml") as f:
-    config = toml.load(f)
 
 
 @app.command()
@@ -37,12 +36,20 @@ def train(serialization_dir: str, model_config: str, overrides_files: str = None
 
 
 @app.command()
-def hyper(serialization_dir: str, model_config: str):
-    commands.train.train_model_from_file(
-        parameter_filename=model_config,
-        serialization_dir=serialization_dir,
-        force=True,
+def evaluate(verifier_archive_path: str, model_name: str, fold: str = "dev"):
+    args = argparse.Namespace(
+        archive_file=verifier_archive_path,
+        cuda_device=0,
+        weights_file=None,
+        overrides="",
+        batch_size=None,
+        input_file=config[model_name][fold]["verify_examples"],
+        embedding_sources_mapping="",
+        extend_vocab=False,
+        batch_weight_key="",
+        output_file=None,
     )
+    commands.evaluate(args)
 
 
 @app.command()
@@ -130,6 +137,11 @@ def convert_dpr_evidence_to_fever(model_key: str, fold: str):
         config[model_key][fold]["evidence_preds"],
         config[model_key][fold]["verify_examples"],
     )
+
+
+@app.command()
+def log_confusion_matrix(experiment_id: str, fold: str, pred_file: str):
+    data.log_confusion_matrix(experiment_id, fold, pred_file)
 
 
 if __name__ == "__main__":

@@ -104,6 +104,7 @@ class FeverVerifier(Model):
         super().__init__(vocab)
         self._pool = pool
         self._in_batch_negatives = in_batch_negatives
+        self._label_namespace = label_namespace
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self._claim_embedder = BasicTextFieldEmbedder(
             {"claim_tokens": PretrainedTransformerEmbedder(transformer)}
@@ -151,11 +152,15 @@ class FeverVerifier(Model):
         logits = self._classifier(
             torch.einsum("ai,bi->abi", [claim_embeddings, evidence_embeddings])
         )
-        probs = torch.nn.functional.softmax(logits, dim=-1)
+        ix = torch.arange(
+            0, batch_size, dtype=torch.long, device=claim_embeddings.device
+        )
+        normal_logits = logits[ix, ix].view(-1, 3)
+        normal_probs = torch.nn.functional.softmax(normal_logits, dim=-1)
         output_dict = {
-            "logits": logits,
-            "probs": probs,
-            "preds": torch.argmax(logits, 2),
+            "logits": normal_logits,
+            "probs": normal_probs,
+            "preds": torch.argmax(normal_logits, 1),
         }
 
         if label is not None:
@@ -166,14 +171,12 @@ class FeverVerifier(Model):
                 dtype=label.dtype,
                 device=label.device,
             )
-            ix = torch.arange(0, batch_size, dtype=label.dtype, device=label.device)
             all_labels[ix, ix] = label
             flattened_logits = logits.view(-1, 3)
             all_labels = all_labels.view(-1)
             loss = self._loss(flattened_logits, all_labels)
             output_dict["loss"] = loss
             self._in_batch_accuracy(flattened_logits, all_labels)
-            normal_logits = logits[ix, ix].view(-1, 3)
             self._accuracy(normal_logits, label)
         return output_dict
 
@@ -212,6 +215,14 @@ class FeverVerifier(Model):
         if self._in_batch_negatives:
             metrics["in_batch_accuracy"] = self._in_batch_accuracy.get_metric(reset)
         return metrics
+
+    def make_output_human_readable(self, output_dict):
+        preds = [
+            self.vocab.get_token_from_index(idx.item(), namespace=self._label_namespace)
+            for idx in output_dict["preds"].cpu()
+        ]
+        output_dict["pred_readable"] = preds
+        return output_dict
 
 
 class FeverEvidenceRanker(Model):

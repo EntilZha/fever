@@ -47,34 +47,36 @@ class FeverReader(DatasetReader):
                 "evidence_tokens": PretrainedTransformerIndexer(transformer),
             }
         else:
-            self._evidence_indexers = None
+            self._evidence_indexers = {}
+        self._db = WikiDatabase()
+        self._page_set = self._db.get_wikipedia_urls()
 
     @overrides
     def _read(self, file_path):
         log.info(f"Reading instances from: {file_path}")
-        db = WikiDatabase()
-        page_set = db.get_wikipedia_urls()
         examples = read_jsonlines(file_path)
         for ex in tqdm(examples):
-            if self._include_evidence:
-                evidence = get_evidence(db, page_set, ex["evidence"])
-            else:
-                evidence = None
             yield self.text_to_instance(
                 ex["claim"],
                 label=ex["label"],
                 claim_id=ex["id"],
-                evidence_text=evidence,
+                evidence=ex["evidence"],
             )
 
     @overrides
     def text_to_instance(
         self,
         claim_text: str,
+        evidence,
         evidence_text: str = None,
         label: str = None,
         claim_id: int = None,
     ):
+        if evidence_text is None:
+            if self._include_evidence:
+                evidence_text = get_evidence(self._db, self._page_set, evidence)
+            else:
+                evidence_text = None
         fields: Dict[str, Field] = {}
         tokenized_claim = self._tokenizer.tokenize(claim_text)
         if evidence_text is not None:

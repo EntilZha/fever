@@ -7,6 +7,7 @@ from typing import Set, Dict, List, Tuple, Optional, Iterable
 import json
 from dataclasses import dataclass
 
+from comet_ml import ExistingExperiment
 from tqdm import tqdm
 from pedroai.io import read_jsonlines, read_json, write_jsonlines
 import numpy as np
@@ -15,6 +16,7 @@ from pydantic import BaseModel
 from serene.wiki_db import WikiDatabase
 from serene.protos.fever_pb2 import WikipediaDump
 from serene.util import get_logger
+from serene.constants import config
 from serene import constants as c
 
 
@@ -355,3 +357,32 @@ def convert_evidence_for_claim_eval(
             f"Length of examples does not match: {len(examples)} vs {len(out_examples)}"
         )
     write_jsonlines(out_path, out_examples)
+
+
+def _label_to_vector(label: int) -> List[int]:
+    zeros = [0, 0, 0]
+    zeros[label] = 1
+    return zeros
+
+
+def log_confusion_matrix(experiment_id: str, fold: str, pred_path: str):
+    examples = read_jsonlines(config["fever"][fold]["examples"])
+    preds = read_jsonlines(pred_path)
+    if len(examples) != len(preds):
+        raise ValueError("Mismatch length of examples and predictions")
+
+    idx_to_label = {}
+    label_to_idx = {}
+    true_labels = []
+    pred_probs = []
+    for ex, p in zip(examples, preds):
+        true_labels.append(ex["label"])
+        probs = p["probs"]
+        pred_probs.append(probs)
+        idx_to_label[p["preds"]] = p["pred_readable"]
+        label_to_idx[p["pred_readable"]] = p["preds"]
+
+    label_names = [idx_to_label[idx] for idx in range(3)]
+    labels = [_label_to_vector(label_to_idx[l]) for l in true_labels]
+    experiment = ExistingExperiment(previous_experiment=experiment_id)
+    experiment.log_confusion_matrix(labels, pred_probs, labels=label_names)
