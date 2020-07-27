@@ -130,6 +130,7 @@ class FeverVerifier(Model):
         if self._in_batch_negatives:
             self._loss = nn.CrossEntropyLoss()
             self._classifier = TimeDistributed(classifier)
+            self._in_batch_accuracy = CategoricalAccuracy()
         else:
             self._classifier = classifier
             weight_array = []
@@ -141,6 +142,7 @@ class FeverVerifier(Model):
                 log.info(f"Class weight: {class_name}={weights[class_name]}")
             torch_weights = torch.from_numpy(np.array(weight_array)).float()
             self._loss = nn.CrossEntropyLoss(weight=torch_weights)
+            self._in_batch_accuracy = None
 
     def _in_batch_loss(
         self, claim_embeddings, evidence_embeddings, label: torch.IntTensor = None
@@ -155,6 +157,7 @@ class FeverVerifier(Model):
             "probs": probs,
             "preds": torch.argmax(logits, 2),
         }
+
         if label is not None:
             label = label.long()
             all_labels = torch.full(
@@ -169,7 +172,9 @@ class FeverVerifier(Model):
             all_labels = all_labels.view(-1)
             loss = self._loss(logits, all_labels)
             output_dict["loss"] = loss
-            self._accuracy(logits, all_labels)
+            self._in_batch_accuracy(logits, all_labels)
+            normal_logits = logits[ix, ix]
+            self._accuracy(normal_logits, label)
         return output_dict
 
     def forward(
@@ -204,6 +209,8 @@ class FeverVerifier(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {"accuracy": self._accuracy.get_metric(reset)}
+        if self._in_batch_negatives:
+            metrics["in_batch_accuracy"] = self._in_batch_accuracy.get_metric(reset)
         return metrics
 
 
