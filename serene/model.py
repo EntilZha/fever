@@ -2,7 +2,7 @@ from typing import Dict, Text
 
 import numpy as np
 import torch
-from torch import nn
+from torch import nn  # type: ignore
 
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
@@ -58,8 +58,8 @@ class ClaimOnlyModel(Model):
             class_name = self.vocab.get_token_from_index(idx, namespace=label_namespace)
             weight_array.append(weights[class_name])
             log.info(f"Class weight: {class_name}={weights[class_name]}")
-        weight_array = torch.from_numpy(np.array(weight_array)).float()
-        self._loss = torch.nn.CrossEntropyLoss(weight=weight_array)
+        torch_weights = torch.from_numpy(np.array(weight_array)).float()
+        self._loss = torch.nn.CrossEntropyLoss(weight=torch_weights)
 
     def forward(
         self,
@@ -89,7 +89,7 @@ class ClaimOnlyModel(Model):
         return metrics
 
 
-class FeverOracleModel(Model):
+class FeverVerifier(Model):
     def __init__(
         self,
         vocab: Vocabulary,
@@ -97,10 +97,12 @@ class FeverOracleModel(Model):
         transformer: str,
         pool: Text,
         classifier_dim: int = 200,
+        in_batch_negatives: bool = False,
         label_namespace: str = "claim_labels",
     ):
         super().__init__(vocab)
         self._pool = pool
+        self._in_batch_negatives = in_batch_negatives
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self._claim_embedder = BasicTextFieldEmbedder(
             {"claim_tokens": PretrainedTransformerEmbedder(transformer)}
@@ -121,13 +123,46 @@ class FeverOracleModel(Model):
             "REFUTES": BASELINE_RATIO / REFUTE_RATIO,
             "NOT ENOUGH INFO": BASELINE_RATIO / NEI_RATIO,
         }
-        weight_array = []
-        for idx in range(3):
-            class_name = self.vocab.get_token_from_index(idx, namespace=label_namespace)
-            weight_array.append(weights[class_name])
-            log.info(f"Class weight: {class_name}={weights[class_name]}")
-        weight_array = torch.from_numpy(np.array(weight_array)).float()
-        self._loss = torch.nn.CrossEntropyLoss(weight=weight_array)
+        self._nei_idx = self.vocab.get_token_index(
+            "NOT ENOUGH INFO", namespace=label_namespace
+        )
+        if self._in_batch_negatives is None:
+            self._loss = nn.CrossEntropyLoss()
+        else:
+            weight_array = []
+            for idx in range(3):
+                class_name = self.vocab.get_token_from_index(
+                    idx, namespace=label_namespace
+                )
+                weight_array.append(weights[class_name])
+                log.info(f"Class weight: {class_name}={weights[class_name]}")
+            torch_weights = torch.from_numpy(np.array(weight_array)).float()
+            self._loss = nn.CrossEntropyLoss(weight=torch_weights)
+
+    def _in_batch_loss(
+        self, claim_embeddings, evidence_embeddings, label: torch.IntTensor = None
+    ):
+        batch_size = claim_embeddings.shape[0]
+        logits = torch._classifier(
+            torch.einsum("ai,bi->ab", [claim_embeddings, evidence_embeddings])
+        )
+        probs = torch.nn.functional.softmax(logits, dim=-1)
+        output_dict = {
+            "logits": logits,
+            "probs": probs,
+            "preds": torch.argmax(logits, 2),
+        }
+        if label is not None:
+            label = label.long()
+            all_labels = torch.full(
+                (batch_size, batch_size, 3), self._nei_idx, dtype=label.dtype
+            )
+            ix = torch.arange(0, batch_size, dtype=label.dtype)
+            all_labels[ix, ix, :] = label
+            loss = self._loss(logits, all_labels)
+            output_dict["loss"] = loss
+            self._accuracy(logits, label)
+        return output_dict
 
     def forward(
         self,
@@ -140,6 +175,10 @@ class FeverOracleModel(Model):
         evidence_embeddings = self._dropout(
             self._evidence_embedder(evidence_tokens)[:, 0, :]
         )
+        if self._in_batch_negatives:
+            return self._in_batch_loss(
+                claim_embeddings, evidence_embeddings, label=label
+            )
         logits = self._classifier(claim_embeddings * evidence_embeddings)
         probs = torch.nn.functional.softmax(logits, dim=-1)
         output_dict = {

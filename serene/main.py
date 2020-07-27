@@ -1,4 +1,6 @@
+import json
 import typer
+import toml
 
 # comet_ml needs to be imported before anything else
 import comet_ml
@@ -15,14 +17,22 @@ log = get_logger(__name__)
 
 
 app = typer.Typer()
+with open("serene.toml") as f:
+    config = toml.load(f)
 
 
 @app.command()
-def train(serialization_dir: str, model_config: str):
+def train(serialization_dir: str, model_config: str, overrides_files: str = None):
+    if overrides_files is not None:
+        with open(overrides_files) as f:
+            overrides = json.load(f)
+    else:
+        overrides = ""
     commands.train.train_model_from_file(
         parameter_filename=model_config,
         serialization_dir=serialization_dir,
         force=True,
+        overrides=overrides,
     )
 
 
@@ -81,16 +91,18 @@ def score_dpr_preds(fever_path: str, id_map_path: str, dpr_path: str):
     """
     Score the DPR Predictions
     """
-    data.score_evidence(fever_path, id_map_path, dpr_path)
+    data.score_dpr_evidence(fever_path, id_map_path, dpr_path)
 
 
 @app.command()
-def convert_examples_to_kotlin_json(fever_path: str, out_path: str):
+def convert_examples_to_kotlin_json(fold: str):
     """
     Convert fever examples to the Json used in the Lucene code written in Kotlin
     at github.com/entilzha/fever-lucene
     """
-    data.convert_examples_to_kotlin_json(fever_path, out_path)
+    data.convert_examples_to_kotlin_json(
+        config["fever"][fold]["examples"], config["fever"][fold]["kotlin_examples"]
+    )
 
 
 @app.command()
@@ -108,6 +120,16 @@ def score_lucene_evidence(fever_path: str, out_path: str):
     Score lucene predictions
     """
     data.score_lucene_evidence(fever_path, out_path)
+
+
+@app.command()
+def convert_dpr_evidence_to_fever(model_key: str, fold: str):
+    data.convert_evidence_for_claim_eval(
+        config["fever"][fold]["examples"],
+        config["dpr_id_map"],
+        config[model_key][fold]["evidence_preds"],
+        config[model_key][fold]["verify_examples"],
+    )
 
 
 if __name__ == "__main__":

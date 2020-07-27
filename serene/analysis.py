@@ -42,7 +42,7 @@ class FeverPredictions:
     def __init__(self, fever_path: str, pred_path: str):
         self.db = WikiDatabase()
         self.examples = {ex["id"]: ex for ex in read_jsonlines(fever_path)}
-        self.id_to_gold = create_gold_evidence(self.examples.values())
+        self.id_to_gold = create_gold_evidence(list(self.examples.values()))
 
         random.seed(42)
         predictions = list(read_json(pred_path)["documents"].items())
@@ -149,7 +149,8 @@ def lucene(fever_path: str, pred_path: str):
 
 @app.command()
 def dpr(fever_path: str, pred_path: str):
-    fd = FeverData(fever_path)
+    # fd = FeverData(fever_path)
+    pass
 
 
 if __name__ == "__main__":

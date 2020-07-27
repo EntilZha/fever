@@ -3,12 +3,12 @@ Utilities for data such as
 * Exporting to DPR/Lucene formats
 * Scoring outputs of DPR/Lucene
 """
-from typing import Set, Dict, List, Tuple
+from typing import Set, Dict, List, Tuple, Optional, Iterable
 import json
 from dataclasses import dataclass
 
 from tqdm import tqdm
-from pedroai.io import read_jsonlines, read_json
+from pedroai.io import read_jsonlines, read_json, write_jsonlines
 import numpy as np
 from pydantic import BaseModel
 
@@ -201,7 +201,7 @@ class GoldEvidence:
     sentences: Set[Tuple[str, int]]
 
 
-def create_gold_evidence(examples: List) -> Dict[str, GoldEvidence]:
+def create_gold_evidence(examples: Iterable) -> Dict[int, GoldEvidence]:
     id_to_gold = {}
     for ex in examples:
         if ex["label"] == c.NOT_ENOUGH_INFO:
@@ -212,11 +212,12 @@ def create_gold_evidence(examples: List) -> Dict[str, GoldEvidence]:
             for _, _, page, sent_id in ev_set:
                 gold_evidence.add((page, sent_id))
                 gold_pages.add(page)
-        id_to_gold[ex["id"]] = GoldEvidence(gold_pages, gold_evidence)
+        # This should already be an int, but make sure it is
+        id_to_gold[int(ex["id"])] = GoldEvidence(gold_pages, gold_evidence)
     return id_to_gold
 
 
-def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
+def score_dpr_evidence(fever_path: str, id_map_path: str, pred_path: str):
     examples = read_jsonlines(fever_path)
     with open(pred_path) as f:
         evidence_preds = json.load(f)
@@ -264,10 +265,10 @@ def score_evidence(fever_path: str, id_map_path: str, pred_path: str):
         if page_correct:
             n_title_correct += 1
 
-    scores = np.array(scores)
+    np_scores = np.array(scores)
     recall_100 = n_correct / n_total
     log.info(
-        f"MRR Mean: {scores.mean():.3f}, MRR Median: {np.median(scores)} % in MRR: {recall_100:.3f}"
+        f"MRR Mean: {np_scores.mean():.3f}, MRR Median: {np.median(np_scores)} % in MRR: {recall_100:.3f}"
     )
     log.info(f"Recall@5: {n_recall_5 / n_total:.3f}")
     log.info(f"N Correct: {n_correct} Total: {n_total}")
@@ -308,12 +309,49 @@ def score_lucene_evidence(fever_path: str, pred_path: str):
         if correct_page:
             n_correct_pages += 1
 
-    scores = np.array(scores)
+    np_scores = np.array(scores)
     n_total = len(id_to_gold)
     recall_100 = n_correct / n_total
     log.info(
-        f"MRR Mean: {scores.mean():.3f}, MRR Median: {np.median(scores)} % in MRR: {recall_100:.3f}"
+        f"MRR Mean: {np_scores.mean():.3f}, MRR Median: {np.median(np_scores)} % in MRR: {recall_100:.3f}"
     )
     log.info(f"Recall@5: {n_recall_5 / n_total:.3f}")
     log.info(f"N Correct: {n_correct} Total: {n_total}")
     log.info(f"N Title Correct: {n_correct_pages}")
+
+
+def convert_evidence_for_claim_eval(
+    fever_path: str, id_map_path: str, pred_path: str, out_path: str
+):
+    """
+    Convert evidence predictions from the DPR model into the same format used by
+    the training/dev data of the Fever task. This makes it easy to test a model
+    that consumes claim plus evidence to predict the inference label (eg support/refute/nei)
+    """
+    examples = read_jsonlines(fever_path)
+    evidence_preds = read_json(pred_path)
+    id_to_page_sent = read_json(id_map_path)
+    out_examples = []
+    for ex, preds in zip(tqdm(examples), evidence_preds):
+        claim_id = ex["id"]
+        claim = ex["claim"]
+        # We only care about the top ranked evidence for this
+        ctx_id = preds["ctxs"][0]["id"]
+        page, sentence_id = id_to_page_sent[ctx_id]
+        # TODO: Undo spaces, can remove after full rerun
+        page = page.replace(" ", "_")
+        predicted_evidence = (page, sentence_id)
+        evidence_set = [[None, None, page, sentence_id]]
+        out_examples.append(
+            {
+                "id": int(claim_id),
+                "verifiable": ex["verifiable"],
+                "label": ex["label"],
+                "evidence": [evidence_set],
+            }
+        )
+    if len(examples) != len(out_examples):
+        raise ValueError(
+            f"Length of examples does not match: {len(examples)} vs {len(out_examples)}"
+        )
+    write_jsonlines(out_path, out_examples)

@@ -31,6 +31,7 @@ ipykernel = "^5.3.2"
 tensorboard = "^2.2.2"
 pytest = "^5.4.3"
 pylint-protobuf = "^0.13"
+mypy = "^0.782"
 
 [tool.poetry.scripts]
 serene = 'serene.main:app'
