@@ -168,12 +168,12 @@ class FeverVerifier(Model):
             )
             ix = torch.arange(0, batch_size, dtype=label.dtype, device=label.device)
             all_labels[ix, ix] = label
-            logits = logits.view(-1, 3)
+            flattened_logits = logits.view(-1, 3)
             all_labels = all_labels.view(-1)
-            loss = self._loss(logits, all_labels)
+            loss = self._loss(flattened_logits, all_labels)
             output_dict["loss"] = loss
-            self._in_batch_accuracy(logits, all_labels)
-            normal_logits = logits[ix, ix]
+            self._in_batch_accuracy(flattened_logits, all_labels)
+            normal_logits = logits[ix, ix].view(-1, 3)
             self._accuracy(normal_logits, label)
         return output_dict
 
