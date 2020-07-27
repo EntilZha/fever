@@ -1,6 +1,6 @@
 local transformer = 'roberta-base';
 
-function(lr=1e-6) {
+function(lr=1e-5) {
   dataset_reader: {
     type: 'serene.dataset.FeverReader',
     transformer: transformer,
