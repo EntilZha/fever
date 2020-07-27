@@ -11,6 +11,7 @@ from allennlp.modules.token_embedders.pretrained_transformer_embedder import (
     PretrainedTransformerEmbedder,
 )
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
+from allennlp.modules import TimeDistributed
 from allennlp.nn import util
 
 from serene.util import get_logger
@@ -111,7 +112,7 @@ class FeverVerifier(Model):
             {"evidence_tokens": PretrainedTransformerEmbedder(transformer)}
         )
         self._dropout = nn.Dropout(dropout)
-        self._classifier = nn.Sequential(
+        classifier = nn.Sequential(
             nn.Linear(self._claim_embedder.get_output_dim(), classifier_dim),
             nn.GELU(),
             nn.LayerNorm(classifier_dim),
@@ -126,9 +127,11 @@ class FeverVerifier(Model):
         self._nei_idx = self.vocab.get_token_index(
             "NOT ENOUGH INFO", namespace=label_namespace
         )
-        if self._in_batch_negatives is None:
+        if self._in_batch_negatives:
             self._loss = nn.CrossEntropyLoss()
+            self._classifier = TimeDistributed(classifier)
         else:
+            self._classifier = classifier
             weight_array = []
             for idx in range(3):
                 class_name = self.vocab.get_token_from_index(
@@ -143,8 +146,8 @@ class FeverVerifier(Model):
         self, claim_embeddings, evidence_embeddings, label: torch.IntTensor = None
     ):
         batch_size = claim_embeddings.shape[0]
-        logits = torch._classifier(
-            torch.einsum("ai,bi->ab", [claim_embeddings, evidence_embeddings])
+        logits = self._classifier(
+            torch.einsum("ai,bi->abi", [claim_embeddings, evidence_embeddings])
         )
         probs = torch.nn.functional.softmax(logits, dim=-1)
         output_dict = {
@@ -155,13 +158,18 @@ class FeverVerifier(Model):
         if label is not None:
             label = label.long()
             all_labels = torch.full(
-                (batch_size, batch_size, 3), self._nei_idx, dtype=label.dtype
+                (batch_size, batch_size),
+                self._nei_idx,
+                dtype=label.dtype,
+                device=label.device,
             )
-            ix = torch.arange(0, batch_size, dtype=label.dtype)
-            all_labels[ix, ix, :] = label
+            ix = torch.arange(0, batch_size, dtype=label.dtype, device=label.device)
+            all_labels[ix, ix] = label
+            logits = logits.view(-1, 3)
+            all_labels = all_labels.view(-1)
             loss = self._loss(logits, all_labels)
             output_dict["loss"] = loss
-            self._accuracy(logits, label)
+            self._accuracy(logits, all_labels)
         return output_dict
 
     def forward(
