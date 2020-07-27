@@ -49,7 +49,7 @@ def evaluate(verifier_archive_path: str, model_name: str, fold: str = "dev"):
         batch_weight_key="",
         output_file=None,
     )
-    commands.evaluate(args)
+    commands.evaluate.evaluate_from_args(args)
 
 
 @app.command()
@@ -141,7 +141,14 @@ def convert_dpr_evidence_to_fever(model_key: str, fold: str):
 
 @app.command()
 def log_confusion_matrix(experiment_id: str, fold: str, pred_file: str):
-    data.log_confusion_matrix(experiment_id, fold, pred_file)
+    data.log_confusion_matrix(
+        experiment_id, config["fever"][fold]["examples"], pred_file
+    )
+
+
+@app.command()
+def plot_confusion_matrix(fold: str, pred_file: str, out_path: str):
+    data.plot_confusion_matrix(config["fever"][fold]["examples"], pred_file, out_path)
 
 
 if __name__ == "__main__":

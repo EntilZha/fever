@@ -8,10 +8,12 @@ import json
 from dataclasses import dataclass
 
 from comet_ml import ExistingExperiment
+from plotnine import ggplot, aes, geom_tile, geom_text
 from tqdm import tqdm
 from pedroai.io import read_jsonlines, read_json, write_jsonlines
 import numpy as np
 from pydantic import BaseModel
+import pandas as pd
 
 from serene.wiki_db import WikiDatabase
 from serene.protos.fever_pb2 import WikipediaDump
@@ -347,6 +349,7 @@ def convert_evidence_for_claim_eval(
         out_examples.append(
             {
                 "id": int(claim_id),
+                "claim": claim,
                 "verifiable": ex["verifiable"],
                 "label": ex["label"],
                 "evidence": [evidence_set],
@@ -365,24 +368,64 @@ def _label_to_vector(label: int) -> List[int]:
     return zeros
 
 
-def log_confusion_matrix(experiment_id: str, fold: str, pred_path: str):
-    examples = read_jsonlines(config["fever"][fold]["examples"])
-    preds = read_jsonlines(pred_path)
-    if len(examples) != len(preds):
-        raise ValueError("Mismatch length of examples and predictions")
+class ConfusionData:
+    def __init__(self, fever_path: str, pred_path: str):
+        examples = read_jsonlines(fever_path)
+        preds = read_jsonlines(pred_path)
+        if len(examples) != len(preds):
+            raise ValueError("Mismatch length of examples and predictions")
 
-    idx_to_label = {}
-    label_to_idx = {}
-    true_labels = []
-    pred_probs = []
-    for ex, p in zip(examples, preds):
-        true_labels.append(ex["label"])
-        probs = p["probs"]
-        pred_probs.append(probs)
-        idx_to_label[p["preds"]] = p["pred_readable"]
-        label_to_idx[p["pred_readable"]] = p["preds"]
+        idx_to_label = {}
+        label_to_idx = {}
+        true_labels = []
+        pred_labels = []
+        pred_probs = []
+        for ex, p in zip(examples, preds):
+            true_labels.append(ex["label"])
+            pred_labels.append(p["pred_readable"])
+            probs = p["probs"]
+            pred_probs.append(probs)
+            idx_to_label[p["preds"]] = p["pred_readable"]
+            label_to_idx[p["pred_readable"]] = p["preds"]
 
-    label_names = [idx_to_label[idx] for idx in range(3)]
-    labels = [_label_to_vector(label_to_idx[l]) for l in true_labels]
+        label_names = [idx_to_label[idx] for idx in range(3)]
+        labels = [_label_to_vector(label_to_idx[l]) for l in true_labels]
+
+        self.labels = labels
+        self.true_labels = true_labels
+        self.pred_labels = pred_labels
+        self.pred_probs = pred_probs
+        self.label_names = label_names
+        self.idx_to_label = idx_to_label
+        self.label_to_idx = label_to_idx
+
+
+def log_confusion_matrix(experiment_id: str, fever_path: str, pred_path: str):
+    conf_data = ConfusionData(fever_path, pred_path)
     experiment = ExistingExperiment(previous_experiment=experiment_id)
-    experiment.log_confusion_matrix(labels, pred_probs, labels=label_names)
+    experiment.log_confusion_matrix(
+        conf_data.labels, conf_data.pred_probs, labels=conf_data.label_names
+    )
+
+
+def plot_confusion_matrix(fever_path: str, pred_path: str, out_path: str):
+    conf_data = ConfusionData(fever_path, pred_path)
+    df = pd.DataFrame(
+        {
+            "true_labels": pd.Categorical(
+                conf_data.true_labels, categories=conf_data.label_names, ordered=True
+            ),
+            "pred_labels": pd.Categorical(
+                conf_data.pred_labels, categories=conf_data.label_names, ordered=True
+            ),
+        }
+    )
+    df["n"] = 1
+    df = df.groupby(["true_labels", "pred_labels"]).sum().reset_index()
+    p = (
+        ggplot(df, aes(x="pred_labels", y="true_labels", fill="n"))
+        + geom_tile(aes(width=0.95, height=0.95))
+        + geom_text(aes(label="n"), size=10)
+    )
+    p.save(out_path)
+
