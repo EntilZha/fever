@@ -6,9 +6,9 @@ function(lr=1e-6) {
     transformer: transformer,
     include_evidence: true,
   },
-  train_data_path: 'test_fixtures/test.jsonl',
+  train_data_path: 'test_fixtures/fever_test.jsonl',
   //train_data_path: 'data/train.jsonl',
-  validation_data_path: 'test_fixtures/test.jsonl',
+  validation_data_path: 'test_fixtures/fever_test.jsonl',
   //validation_data_path: 'data/shared_task_dev.jsonl',
   model: {
     type: 'serene.model.FeverVerifier',
