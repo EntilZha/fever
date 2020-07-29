@@ -16,4 +16,3 @@ class FeverVerifierPredictor(Predictor):
             evidence_text=evidence_text,
             evidence=evidence,
         )
-

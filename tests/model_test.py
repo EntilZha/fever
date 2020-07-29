@@ -4,7 +4,7 @@ from allennlp.common.testing import ModelTestCase
 class TestEvidenceRanker(ModelTestCase):
     def setup_method(self):
         super().setup_method()
-        self.set_up_model('evidence_ranker.jsonnet', 'test_fixtures/fever_test.jsonl')
+        self.set_up_model("evidence_ranker.jsonnet", "test_fixtures/fever_test.jsonl")
 
     def test_forward_pass_runs_correctly(self):
         training_tensors = self.dataset.as_tensor_dict()

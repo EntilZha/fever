@@ -428,4 +428,3 @@ def plot_confusion_matrix(fever_path: str, pred_path: str, out_path: str):
         + geom_text(aes(label="n"), size=10)
     )
     p.save(out_path)
-

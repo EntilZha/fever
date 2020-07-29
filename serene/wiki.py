@@ -101,7 +101,7 @@ def _parse_sentences(lines_text):
         try:
             sentence = _parse_sentence(sentence_line)
         except ParseError:
-            logging.info('Failed parse, skipping')
+            logging.info("Failed parse, skipping")
             continue
         if sentence.text:
             sentences[sentence_number] = sentence
@@ -126,7 +126,9 @@ def build_wiki_db():
         pass
     db.create()
     with db.session_scope as session:
-        for path in tqdm(glob.glob('data/wiki-pages/*.jsonl')):
+        for path in tqdm(glob.glob("data/wiki-pages/*.jsonl")):
             for row in read_jsonlines(path):
                 proto = parse_wiki_line_from_json(row)
-                session.add(WikiPage(wikipedia_url=proto.title, proto=proto.SerializeToString()))
+                session.add(
+                    WikiPage(wikipedia_url=proto.title, proto=proto.SerializeToString())
+                )
