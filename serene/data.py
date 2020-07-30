@@ -289,7 +289,7 @@ def score_dpr_evidence(
         json.dump(metrics, f)
 
 
-def score_lucene_evidence(fever_path: str, pred_path: str):
+def score_lucene_evidence(fever_path: str, pred_path: str, out_path: str):
     examples = read_jsonlines(fever_path)
     id_to_gold = create_gold_evidence(examples)
     predictions = {int(k): v for k, v in read_json(pred_path)["documents"].items()}
@@ -326,12 +326,19 @@ def score_lucene_evidence(fever_path: str, pred_path: str):
     np_scores = np.array(scores)
     n_total = len(id_to_gold)
     recall_100 = n_correct / n_total
-    log.info(
-        f"MRR Mean: {np_scores.mean():.3f}, MRR Median: {np.median(np_scores)} % in MRR: {recall_100:.3f}"
-    )
-    log.info(f"Recall@5: {n_recall_5 / n_total:.3f}")
-    log.info(f"N Correct: {n_correct} Total: {n_total}")
-    log.info(f"N Title Correct: {n_correct_pages}")
+    metrics = {
+        "mrr_mean_in_100": np_scores.mean(),
+        "mrr_median_in_100": np.median(np_scores),
+        "recall@100": recall_100,
+        "recall@5": n_recall_5 / n_total,
+        "n_correct": n_correct,
+        "n_total": n_total,
+        "n_title_correct": n_correct_pages,
+    }
+    log.info("Metrics:")
+    log.info(pformat(metrics))
+    with open(out_path, "w") as f:
+        json.dump(metrics, f)
 
 
 def convert_evidence_for_claim_eval(

@@ -36,20 +36,25 @@ def train(serialization_dir: str, model_config: str, overrides_files: str = None
 
 
 @app.command()
-def evaluate(verifier_archive_path: str, model_name: str, fold: str = "dev"):
+def evaluate(verifier_name: str, retriever_name: str, fold: str = "dev"):
     args = argparse.Namespace(
-        archive_file=verifier_archive_path,
+        archive_file=config["verifier"][verifier_name]["archive"],
         cuda_device=0,
         weights_file=None,
         overrides="",
         batch_size=None,
-        input_file=config[model_name][fold]["verify_examples"],
+        input_file=config["retriever"][retriever_name][fold]["verify_examples"],
         embedding_sources_mapping="",
         extend_vocab=False,
         batch_weight_key="",
         output_file=None,
     )
     commands.evaluate.evaluate_from_args(args)
+
+
+@app.command()
+def predict(verifier_name: str, retriever_name: str, fold: str = "dev"):
+    args = argparse.Namespace()
 
 
 @app.command()
@@ -71,8 +76,8 @@ def fever_to_dpr_train(
     """
     data.convert_examples_for_dpr_training(
         fever_path=config["fever"][fold]["examples"],
-        out_path=config[model_key][fold]["hard_neg"],
-        hard_neg_path=config["lucene_preds"][fold],
+        out_path=config["retriever"][model_key][fold]["hard_neg"],
+        hard_neg_path=config["lucene"][fold]["preds"],
         nth_best_neg=nth_best_neg,
     )
 
@@ -101,8 +106,8 @@ def score_dpr_preds(fold: str, model_key: str):
     data.score_dpr_evidence(
         config["fever"][fold]["examples"],
         config["dpr_id_map"],
-        config[model_key][fold]["evidence_preds"],
-        config[model_key][fold]["metrics"],
+        config["retriever"][model_key][fold]["evidence_preds"],
+        config["retriever"][model_key][fold]["metrics"],
     )
 
 
@@ -127,11 +132,15 @@ def convert_wiki_to_kotlin_json(out_path: str):
 
 
 @app.command()
-def score_lucene_evidence(fever_path: str, out_path: str):
+def score_lucene_evidence(fold: str = "dev"):
     """
     Score lucene predictions
     """
-    data.score_lucene_evidence(fever_path, out_path)
+    data.score_lucene_evidence(
+        config["fever"][fold]["examples"],
+        config["lucene"][fold]["preds"],
+        config["lucene"][fold]["metrics"],
+    )
 
 
 @app.command()
@@ -139,8 +148,8 @@ def convert_dpr_evidence_to_fever(model_key: str, fold: str):
     data.convert_evidence_for_claim_eval(
         config["fever"][fold]["examples"],
         config["dpr_id_map"],
-        config[model_key][fold]["evidence_preds"],
-        config[model_key][fold]["verify_examples"],
+        config["retriever"][model_key][fold]["evidence_preds"],
+        config["retriever"][model_key][fold]["verify_examples"],
     )
 
 
