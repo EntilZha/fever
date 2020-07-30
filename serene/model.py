@@ -12,7 +12,6 @@ from allennlp.modules.token_embedders.pretrained_transformer_embedder import (
 )
 from allennlp.modules.text_field_embedders import BasicTextFieldEmbedder
 from allennlp.modules import TimeDistributed
-from allennlp.nn import util
 
 from serene.util import get_logger
 from serene.metrics import Recall

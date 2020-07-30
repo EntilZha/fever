@@ -63,16 +63,16 @@ def wiki_to_proto():
 
 @app.command()
 def fever_to_dpr_train(
-    fever_path: str, out_path: str, hard_neg_path: str = None, nth_best_neg: int = 1
+    fold: str, model_key: str, nth_best_neg: int,
 ):
     """
     Convert Fever examples for DPR training. If hard_neg_path is defined,
     then add these in as well.
     """
     data.convert_examples_for_dpr_training(
-        fever_path=fever_path,
-        out_path=out_path,
-        hard_neg_path=hard_neg_path,
+        fever_path=config["fever"][fold]["examples"],
+        out_path=config[model_key][fold]["hard_neg"],
+        hard_neg_path=config["lucene_preds"][fold],
         nth_best_neg=nth_best_neg,
     )
 
@@ -94,11 +94,16 @@ def wiki_to_dpr(tsv_path: str, map_path: str):
 
 
 @app.command()
-def score_dpr_preds(fever_path: str, id_map_path: str, dpr_path: str):
+def score_dpr_preds(fold: str, model_key: str):
     """
     Score the DPR Predictions
     """
-    data.score_dpr_evidence(fever_path, id_map_path, dpr_path)
+    data.score_dpr_evidence(
+        config["fever"][fold]["examples"],
+        config["dpr_id_map"],
+        config[model_key][fold]["evidence_preds"],
+        config[model_key][fold]["metrics"],
+    )
 
 
 @app.command()

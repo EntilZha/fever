@@ -4,6 +4,7 @@ Utilities for data such as
 * Scoring outputs of DPR/Lucene
 """
 from typing import Set, Dict, List, Tuple, Optional, Iterable
+from pprint import pformat
 import json
 from dataclasses import dataclass
 
@@ -221,7 +222,9 @@ def create_gold_evidence(examples: Iterable) -> Dict[int, GoldEvidence]:
     return id_to_gold
 
 
-def score_dpr_evidence(fever_path: str, id_map_path: str, pred_path: str):
+def score_dpr_evidence(
+    fever_path: str, id_map_path: str, pred_path: str, out_path: str
+):
     examples = read_jsonlines(fever_path)
     with open(pred_path) as f:
         evidence_preds = json.load(f)
@@ -271,12 +274,19 @@ def score_dpr_evidence(fever_path: str, id_map_path: str, pred_path: str):
 
     np_scores = np.array(scores)
     recall_100 = n_correct / n_total
-    log.info(
-        f"MRR Mean: {np_scores.mean():.3f}, MRR Median: {np.median(np_scores)} % in MRR: {recall_100:.3f}"
-    )
-    log.info(f"Recall@5: {n_recall_5 / n_total:.3f}")
-    log.info(f"N Correct: {n_correct} Total: {n_total}")
-    log.info(f"N Title Correct: {n_title_correct}")
+    metrics = {
+        "mrr_mean_in_100": np_scores.mean(),
+        "mrr_median_in_100": np.median(np_scores),
+        "recall@100": recall_100,
+        "recall@5": n_recall_5 / n_total,
+        "n_correct": n_correct,
+        "n_total": n_total,
+        "n_title_correct": n_title_correct,
+    }
+    log.info("Metrics:")
+    log.info(pformat(metrics))
+    with open(out_path, "w") as f:
+        json.dump(metrics, f)
 
 
 def score_lucene_evidence(fever_path: str, pred_path: str):

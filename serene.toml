@@ -1,5 +1,9 @@
 dpr_id_map = "/fs/clip-scratch/entilzha/fever/dpr_fever_wikipedia_id_map.json"
 
+[lucene_preds]
+train = "data/lucene_preds_train.jsonl"
+dev = "data/lucene_preds_dev.jsonl"
+
 [fever.train]
 examples = "data/train.jsonl"
 kotlin_examples = "data/train.kotlin.json"
@@ -13,15 +17,53 @@ kotlin_examples = "data/shared_task_dev.kotlin.jsonl"
 [dpr_neg_0.dev]
 evidence_preds = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-fever/preds_dev.json"
 verify_examples = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-fever/shared_task_dev.jsonl"
+metrics = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-fever/metrics.json"
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_0.dev.json'
+
+[dpr_neg_0.train]
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_0.train.json'
 
 [dpr_neg_1.dev]
 evidence_preds = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_1/preds_dev.json"
 verify_examples = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_1/shared_task_dev.jsonl"
+metrics = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_1/metrics.json"
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_1.dev.json'
+
+[dpr_neg_1.train]
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_1.train.json'
 
 [dpr_neg_2.dev]
 evidence_preds = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_2/preds_dev.json"
 verify_examples = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_2/shared_task_dev.jsonl"
+metrics = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_2/metrics.json"
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_2.dev.json'
+
+[dpr_neg_2.train]
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_2.train.json'
 
 [dpr_neg_3.dev]
 evidence_preds = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_3/preds_dev.json"
 verify_examples = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_3/shared_task_dev.jsonl"
+metrics = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_3/metrics.json"
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_3.dev.json'
+
+[dpr_neg_3.train]
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_3.train.json'
+
+[dpr_neg_4.dev]
+evidence_preds = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_4/preds_dev.json"
+verify_examples = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_4/shared_task_dev.jsonl"
+metrics = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_4/metrics.json"
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_4.dev.json'
+
+[dpr_neg_4.train]
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_4.train.json'
+
+[dpr_neg_5.dev]
+evidence_preds = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_5/preds_dev.json"
+verify_examples = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_5/shared_task_dev.jsonl"
+metrics = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_5/metrics.json"
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_5.dev.json'
+
+[dpr_neg_5.train]
+hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_5.train.json'
