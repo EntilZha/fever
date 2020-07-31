@@ -6,6 +6,8 @@ import typer
 import comet_ml
 from allennlp import commands
 
+from pedroai.io import safe_file
+
 from serene import wiki
 from serene import data
 from serene.constants import config
@@ -36,7 +38,7 @@ def train(serialization_dir: str, model_config: str, overrides_files: str = None
 
 
 @app.command()
-def evaluate(verifier_name: str, retriever_name: str, fold: str = "dev"):
+def evaluate(retriever_name: str, verifier_name: str, fold: str = "dev"):
     args = argparse.Namespace(
         archive_file=config["verifier"][verifier_name]["archive"],
         cuda_device=0,
@@ -47,14 +49,38 @@ def evaluate(verifier_name: str, retriever_name: str, fold: str = "dev"):
         embedding_sources_mapping="",
         extend_vocab=False,
         batch_weight_key="",
-        output_file=None,
+        output_file=config["pipeline"][retriever_name + "+" + verifier_name][fold][
+            "metrics"
+        ],
     )
     commands.evaluate.evaluate_from_args(args)
 
 
 @app.command()
-def predict(verifier_name: str, retriever_name: str, fold: str = "dev"):
-    args = argparse.Namespace()
+def predict(
+    retriever_name: str,
+    verifier_name: str,
+    fold: str = "dev",
+    batch_size: int = 32,
+    silent: bool = True,
+):
+    output_file = config["pipeline"][retriever_name + "+" + verifier_name][fold][
+        "preds"
+    ]
+    args = argparse.Namespace(
+        cuda_device=0,
+        overrides="",
+        batch_size=batch_size,
+        predictor="serene.predictor.FeverVerifierPredictor",
+        dataset_reader_choice="validation",
+        use_dataset_reader=False,
+        archive_file=config["verifier"][verifier_name]["archive"],
+        input_file=config["retriever"][retriever_name][fold]["verify_examples"],
+        output_file=safe_file(output_file),
+        weights_file=None,
+        silent=silent,
+    )
+    commands.predict._predict(args)  # pylint: disable=protected-access
 
 
 @app.command()
@@ -161,8 +187,12 @@ def log_confusion_matrix(experiment_id: str, fold: str, pred_file: str):
 
 
 @app.command()
-def plot_confusion_matrix(fold: str, pred_file: str, out_path: str):
-    data.plot_confusion_matrix(config["fever"][fold]["examples"], pred_file, out_path)
+def plot_confusion_matrix(retriever_name: str, verifier_name: str, fold="dev"):
+    data.plot_confusion_matrix(
+        config["fever"][fold]["examples"],
+        config["pipeline"][retriever_name + "+" + verifier_name][fold]["preds"],
+        config["pipeline"][retriever_name + "+" + verifier_name][fold]["metrics"],
+    )
 
 
 if __name__ == "__main__":

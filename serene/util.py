@@ -1,15 +1,9 @@
 import subprocess
 import logging
-import os
 
 
 def shell(command):
     return subprocess.run(command, check=True, shell=True, stderr=subprocess.STDOUT)
-
-
-def safe_path(path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    return path
 
 
 def get_logger(name):

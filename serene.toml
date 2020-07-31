@@ -84,3 +84,33 @@ evidence_preds = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_5/pred
 verify_examples = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_5/shared_task_dev.jsonl"
 metrics = "/fs/clip-scratch/entilzha/dpr-predictions/pretrain-negs_5/metrics.json"
 hard_neg = '/fs/clip-quiz/entilzha/code/fever/data/dpr.hard_neg_5.dev.json'
+
+[pipeline.'dpr_neg_0+batch'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_0+batch/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_0+batch/confusion.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_0+batch/metrics.dev.json'
+
+[pipeline.'dpr_neg_1+batch'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_1+batch/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_1+batch/confusion.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_1+batch/metrics.dev.json'
+
+[pipeline.'dpr_neg_2+batch'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_2+batch/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_2+batch/confusion.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_2+batch/metrics.dev.json'
+
+[pipeline.'dpr_neg_3+batch'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_3+batch/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_3+batch/confusion.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_3+batch/metrics.dev.json'
+
+[pipeline.'dpr_neg_4+batch'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_4+batch/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_4+batch/confusion.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_4+batch/metrics.dev.json'
+
+[pipeline.'dpr_neg_5+batch'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_5+batch/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_5+batch/confusion.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/dpr_neg_5+batch/metrics.dev.json'

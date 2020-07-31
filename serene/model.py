@@ -64,8 +64,8 @@ class ClaimOnlyModel(Model):
     def forward(
         self,
         claim_tokens: Dict[str, torch.LongTensor],
-        evidence_tokens=None,
-        metadata=None,
+        evidence_tokens=None,  # pylint: disable=unused-argument
+        metadata=None,  # pylint: disable=unused-argument
         label: torch.IntTensor = None,
     ):
         claim_embeddings = self._claim_embedder(claim_tokens)[:, 0, :]
@@ -183,7 +183,7 @@ class FeverVerifier(Model):
         self,
         claim_tokens: Dict[str, torch.LongTensor],
         evidence_tokens: Dict[str, torch.LongTensor],
-        metadata=None,
+        metadata=None,  # pylint: disable=unused-argument
         label: torch.IntTensor = None,
     ):
         claim_embeddings = self._dropout(self._claim_embedder(claim_tokens)[:, 0, :])
@@ -249,7 +249,7 @@ class FeverEvidenceRanker(Model):
         self,
         claim_tokens: Dict[str, torch.LongTensor],
         evidence_tokens: Dict[str, torch.LongTensor],
-        metadata=None,
+        metadata=None,  # pylint: disable=unused-argument
         label: torch.IntTensor = None,
     ):
         emb_dim = self._claim_embedder.get_output_dim()
