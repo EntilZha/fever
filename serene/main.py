@@ -23,12 +23,13 @@ app = typer.Typer()
 
 
 @app.command()
-def train(serialization_dir: str, model_config: str, overrides_files: str = None):
-    if overrides_files is not None:
-        with open(overrides_files) as f:
-            overrides = json.load(f)
-    else:
-        overrides = ""
+def train(model_key: str):
+    serialization_dir = config["verifier"][model_key]["serialization_dir"]
+    overrides = json.dumps(config["verifier"][model_key].get("overrides", {}))
+    model_config = config[model_key]["config"]
+    log.info(f"Model Key: {model_key}")
+    log.info(f"Overrides: {overrides}")
+    log.info(f"Model Config: {model_config}")
     commands.train.train_model_from_file(
         parameter_filename=model_config,
         serialization_dir=serialization_dir,
@@ -39,11 +40,12 @@ def train(serialization_dir: str, model_config: str, overrides_files: str = None
 
 @app.command()
 def evaluate(retriever_name: str, verifier_name: str, fold: str = "dev"):
+    overrides = json.dumps(config["verifier"][verifier_name].get("overrides", {}))
     args = argparse.Namespace(
         archive_file=config["verifier"][verifier_name]["archive"],
         cuda_device=0,
         weights_file=None,
-        overrides="",
+        overrides=overrides,
         batch_size=None,
         input_file=config["retriever"][retriever_name][fold]["verify_examples"],
         embedding_sources_mapping="",
@@ -64,12 +66,13 @@ def predict(
     batch_size: int = 32,
     silent: bool = True,
 ):
+    overrides = json.dumps(config["verifier"][verifier_name].get("overrides", {}))
     output_file = config["pipeline"][retriever_name + "+" + verifier_name][fold][
         "preds"
     ]
     args = argparse.Namespace(
         cuda_device=0,
-        overrides="",
+        overrides=overrides,
         batch_size=batch_size,
         predictor="serene.predictor.FeverVerifierPredictor",
         dataset_reader_choice="validation",
@@ -191,7 +194,7 @@ def plot_confusion_matrix(retriever_name: str, verifier_name: str, fold="dev"):
     data.plot_confusion_matrix(
         config["fever"][fold]["examples"],
         config["pipeline"][retriever_name + "+" + verifier_name][fold]["preds"],
-        config["pipeline"][retriever_name + "+" + verifier_name][fold]["metrics"],
+        config["pipeline"][retriever_name + "+" + verifier_name][fold]["confusion"],
     )
 
 

@@ -18,10 +18,26 @@ metrics = "data/lucene/metrics.train.json"
 preds = "data/lucene_preds_dev.jsonl"
 metrics = "data/lucene/metrics.dev.json"
 
+[retriever.claim_only.dev]
+verify_examples = "data/shared_task_dev.jsonl"
+
+[verifier.claim_only]
+serialization_dir = '/fs/clip-scratch/entilzha/verifier-models/claim_only.model'
+archive = '/fs/clip-scratch/entilzha/verifier-models/claim_only.model/model.tar.gz'
+config = 'claim_only.jsonnet'
+overrides = {}
+
+[pipeline.'claim_only+claim_only'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/claim_only/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/claim_only/confusion.dev.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/claim_only/metrics.dev.json'
+
 # Fever Verifier Models
 [verifier.batch]
 serialization_dir = '/fs/clip-scratch/entilzha/verifier-models/verifier-batch.model'
 archive = '/fs/clip-scratch/entilzha/verifier-models/verifier-batch.model/model.tar.gz'
+config = 'verifier_in_batch.jsonnet'
+overrides = {}
 
 
 # DPR models for Fever

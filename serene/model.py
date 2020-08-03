@@ -39,6 +39,7 @@ class ClaimOnlyModel(Model):
     ):
         super().__init__(vocab)
         self._pool = pool
+        self._label_namespace = label_namespace
         self._claim_embedder = BasicTextFieldEmbedder(
             {"claim_tokens": PretrainedTransformerEmbedder(transformer)}
         )
@@ -87,6 +88,14 @@ class ClaimOnlyModel(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {"accuracy": self._accuracy.get_metric(reset)}
         return metrics
+
+    def make_output_human_readable(self, output_dict):
+        preds = [
+            self.vocab.get_token_from_index(idx.item(), namespace=self._label_namespace)
+            for idx in output_dict["preds"].cpu()
+        ]
+        output_dict["pred_readable"] = preds
+        return output_dict
 
 
 class FeverVerifier(Model):
