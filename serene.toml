@@ -20,6 +20,7 @@ metrics = "data/lucene/metrics.dev.json"
 
 [stats.dev]
 confusion_matrices = '/fs/clip-scratch/entilzha/fever-stats/confusions.dev.png'
+confusion_flow = '/fs/clip-scratch/entilzha/fever-stats/'
 
 [retriever.claim_only.dev]
 verify_examples = "data/shared_task_dev.jsonl"

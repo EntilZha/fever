@@ -3,13 +3,14 @@ import argparse
 import typer
 
 # comet_ml needs to be imported before anything else
-import comet_ml
+import comet_ml  # pylint: disable=unused-import
 from allennlp import commands
 
 from pedroai.io import safe_file
 
 from serene import wiki
 from serene import data
+from serene import analysis
 from serene.constants import config
 
 # Init the logger
@@ -184,14 +185,14 @@ def convert_dpr_evidence_to_fever(model_key: str, fold: str):
 
 @app.command()
 def log_confusion_matrix(experiment_id: str, fold: str, pred_file: str):
-    data.log_confusion_matrix(
+    analysis.log_confusion_matrix(
         experiment_id, config["fever"][fold]["examples"], pred_file
     )
 
 
 @app.command()
 def plot_confusion_matrix(retriever_name: str, verifier_name: str, fold="dev"):
-    data.plot_confusion_matrix(
+    analysis.plot_confusion_matrix(
         config["fever"][fold]["examples"],
         config["pipeline"][retriever_name + "+" + verifier_name][fold]["preds"],
         config["pipeline"][retriever_name + "+" + verifier_name][fold]["confusion"],
@@ -200,9 +201,14 @@ def plot_confusion_matrix(retriever_name: str, verifier_name: str, fold="dev"):
 
 @app.command()
 def plot_all_confusions(fold: str):
-    data.plot_all_confusion_matrices(
+    analysis.plot_all_confusion_matrices(
         fold, safe_file(config["stats"]["dev"]["confusion_matrices"])
     )
+
+
+@app.command()
+def plot_confusion_flow(fold: str):
+    analysis.plot_confusion_flow(fold, config["stats"][fold]["confusion_flow"])
 
 
 if __name__ == "__main__":
