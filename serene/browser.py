@@ -1,3 +1,4 @@
+# pylint: disable-all
 import random
 import typer
 import pandas as pd

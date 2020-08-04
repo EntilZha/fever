@@ -132,3 +132,4 @@ serene/protos/*.py
 data
 .vscode/*
 java/
+*.ipynb

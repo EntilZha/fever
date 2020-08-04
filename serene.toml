@@ -18,6 +18,9 @@ metrics = "data/lucene/metrics.train.json"
 preds = "data/lucene_preds_dev.jsonl"
 metrics = "data/lucene/metrics.dev.json"
 
+[stats.dev]
+confusion_matrices = '/fs/clip-scratch/entilzha/fever-stats/confusions.dev.png'
+
 [retriever.claim_only.dev]
 verify_examples = "data/shared_task_dev.jsonl"
 
@@ -32,12 +35,21 @@ preds = '/fs/clip-scratch/entilzha/pipeline/claim_only/preds_dev.jsonl'
 confusion = '/fs/clip-scratch/entilzha/pipeline/claim_only/confusion.dev.png'
 metrics = '/fs/clip-scratch/entilzha/pipeline/claim_only/metrics.dev.json'
 
+[retriever.gold.dev]
+verify_examples = "data/shared_task_dev.jsonl"
+
 # Fever Verifier Models
-[verifier.batch]
+[verifier.gold]
 serialization_dir = '/fs/clip-scratch/entilzha/verifier-models/verifier-batch.model'
 archive = '/fs/clip-scratch/entilzha/verifier-models/verifier-batch.model/model.tar.gz'
 config = 'verifier_in_batch.jsonnet'
 overrides = {}
+
+[pipeline.'gold+gold'.dev]
+preds = '/fs/clip-scratch/entilzha/pipeline/gold/preds_dev.jsonl'
+confusion = '/fs/clip-scratch/entilzha/pipeline/gold/confusion.dev.png'
+metrics = '/fs/clip-scratch/entilzha/pipeline/gold/metrics.dev.json'
+
 
 
 # DPR models for Fever

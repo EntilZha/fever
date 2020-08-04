@@ -3,17 +3,25 @@ Utilities for data such as
 * Exporting to DPR/Lucene formats
 * Scoring outputs of DPR/Lucene
 """
-from typing import Set, Dict, List, Tuple, Optional, Iterable
+from typing import Set, Dict, List, Tuple, Iterable
 from pprint import pformat
 import json
 from dataclasses import dataclass
 
 from comet_ml import ExistingExperiment
-from plotnine import ggplot, aes, geom_tile, geom_text
+from plotnine import (
+    ggplot,
+    aes,
+    geom_tile,
+    geom_text,
+    facet_wrap,
+    theme,
+    scale_fill_cmap,
+)
 from tqdm import tqdm
 from pedroai.io import read_jsonlines, read_json, write_jsonlines
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel  # pylint: disable=no-name-in-module
 import pandas as pd
 
 from serene.wiki_db import WikiDatabase
@@ -397,13 +405,19 @@ class ConfusionData:
         true_labels = []
         pred_labels = []
         pred_probs = []
+        fever_ids = []
+        label_combo = []
         for ex, p in zip(examples, preds):
-            true_labels.append(ex["label"])
-            pred_labels.append(p["pred_readable"])
+            t_label = ex["label"]
+            p_label = p["pred_readable"]
+            true_labels.append(t_label)
+            pred_labels.append(p_label)
+            label_combo.append(f"T: {t_label} P: {p_label}")
             probs = p["probs"]
             pred_probs.append(probs)
-            idx_to_label[p["preds"]] = p["pred_readable"]
-            label_to_idx[p["pred_readable"]] = p["preds"]
+            idx_to_label[p["preds"]] = p_label
+            label_to_idx[p_label] = p["preds"]
+            fever_ids.append(ex["id"])
 
         label_names = [idx_to_label[idx] for idx in range(3)]
         labels = [_label_to_vector(label_to_idx[l]) for l in true_labels]
@@ -411,10 +425,28 @@ class ConfusionData:
         self.labels = labels
         self.true_labels = true_labels
         self.pred_labels = pred_labels
+        self.label_combo = label_combo
+        self.combo_set = set(label_combo)
         self.pred_probs = pred_probs
         self.label_names = label_names
         self.idx_to_label = idx_to_label
         self.label_to_idx = label_to_idx
+        self.fever_ids = fever_ids
+        self.df = pd.DataFrame(
+            {
+                "true_label": pd.Categorical(
+                    self.true_labels, categories=self.label_names, ordered=True
+                ),
+                "pred_label": pd.Categorical(
+                    self.pred_labels, categories=self.label_names, ordered=True
+                ),
+                "fever_id": self.fever_ids,
+                "combo_label": pd.Categorical(
+                    self.label_combo, categories=list(self.combo_set), ordered=True
+                ),
+            }
+        )
+        self.df["n"] = 1
 
 
 def log_confusion_matrix(experiment_id: str, fever_path: str, pred_path: str):
@@ -427,21 +459,44 @@ def log_confusion_matrix(experiment_id: str, fever_path: str, pred_path: str):
 
 def plot_confusion_matrix(fever_path: str, pred_path: str, out_path: str):
     conf_data = ConfusionData(fever_path, pred_path)
-    df = pd.DataFrame(
-        {
-            "true_labels": pd.Categorical(
-                conf_data.true_labels, categories=conf_data.label_names, ordered=True
-            ),
-            "pred_labels": pd.Categorical(
-                conf_data.pred_labels, categories=conf_data.label_names, ordered=True
-            ),
-        }
-    )
-    df["n"] = 1
-    df = df.groupby(["true_labels", "pred_labels"]).sum().reset_index()
+    df = conf_data.df
+    df = df.groupby(["true_label", "pred_label"]).sum().reset_index()
     p = (
-        ggplot(df, aes(x="pred_labels", y="true_labels", fill="n"))
+        ggplot(df, aes(x="pred_label", y="true_label", fill="n"))
         + geom_tile(aes(width=0.95, height=0.95))
         + geom_text(aes(label="n"), size=10)
+    )
+    p.save(out_path)
+
+
+def plot_all_confusion_matrices(fold: str, out_path: str):
+    frames = []
+    by_name = {}
+    model_names = [
+        "claim_only+claim_only",
+        "gold+gold",
+        "dpr_neg_0+batch",
+        "dpr_neg_1+batch",
+        "dpr_neg_2+batch",
+        "dpr_neg_3+batch",
+    ]
+    for name in model_names:
+        conf_data = ConfusionData(
+            config["fever"][fold]["examples"], config["pipeline"][name][fold]["preds"]
+        )
+        conf_data.df["model"] = name
+        by_name[name] = conf_data.df
+        frames.append(conf_data.df)
+    df = pd.concat(frames)
+    df["model"] = pd.Categorical(df["model"], categories=model_names, ordered=True)
+    pdf = df.groupby(["true_label", "pred_label", "model"]).sum().reset_index()
+    p = (
+        ggplot(pdf)
+        + aes(x="pred_label", y="true_label", fill="n")
+        + facet_wrap("model")
+        + geom_tile(aes(width=0.95, height=0.95))
+        + geom_text(aes(label="n"), size=10)
+        + scale_fill_cmap("cividis")
+        + theme(figure_size=(15, 10))
     )
     p.save(out_path)

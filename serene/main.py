@@ -198,5 +198,12 @@ def plot_confusion_matrix(retriever_name: str, verifier_name: str, fold="dev"):
     )
 
 
+@app.command()
+def plot_all_confusions(fold: str):
+    data.plot_all_confusion_matrices(
+        fold, safe_file(config["stats"]["dev"]["confusion_matrices"])
+    )
+
+
 if __name__ == "__main__":
     app()
