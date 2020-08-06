@@ -134,7 +134,7 @@ def plot_all_confusion_matrices(fold: str, out_path: str):
     p.save(out_path)
 
 
-def _colorize(n):
+def colorize(n):
     if "T: SUPPORTS" in n:
         return "green"
     elif "T: NOT ENOUGH INFO" in n:
@@ -144,6 +144,7 @@ def _colorize(n):
 
 
 def plot_confusion_flow(fold: str, out_dir: str):
+    # pylint: disable=cell-var-from-loop
     fever_path = config["fever"][fold]["examples"]
     frames = []
     by_name = {}
@@ -184,7 +185,7 @@ def plot_confusion_flow(fold: str, out_dir: str):
                 go.Sankey(
                     node={
                         "label": nodes,
-                        "color": [_colorize(n) for n in nodes],
+                        "color": [colorize(n) for n in nodes],
                         "line": {"color": "black", "width": 0.5},
                         "pad": 15,
                         "thickness": 20,
